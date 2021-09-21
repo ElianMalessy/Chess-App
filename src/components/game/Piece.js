@@ -16,6 +16,7 @@ function Piece({ color, position }) {
 		move.css('z-index', 10);
 
 		let lastOffset = move.data('lastTransform');
+
 		let lastOffsetX = lastOffset ? lastOffset.dx : 0,
 			lastOffsetY = lastOffset ? lastOffset.dy : 0;
 
