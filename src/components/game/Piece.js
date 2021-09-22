@@ -14,9 +14,8 @@ function Piece({ color, position }) {
 		const move = $(me.target);
 		const rect = document.elementFromPoint(me.pageX, me.pageY).getBoundingClientRect();
 		move.css('z-index', 10);
-
+		
 		let lastOffset = move.data('lastTransform');
-
 		let lastOffsetX = lastOffset ? lastOffset.dx : 0,
 			lastOffsetY = lastOffset ? lastOffset.dy : 0;
 
