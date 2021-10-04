@@ -1,20 +1,21 @@
 import React, { useContext } from 'react';
 import classes from './Board.module.css';
 import classNames from 'classnames';
-import { TurnContext } from './Board';
-import { capturedPieces } from './Game';
+import { TurnContext, PlayerContext, SocketContext } from './Game';
+import { CapturedPieces } from './CapturedPanel';
 import $ from 'jquery';
-
 
 function Piece({ color, position }) {
 	const { turn, setTurn } = useContext(TurnContext);
-	const { setPiece } = useContext(capturedPieces);
+	const { setPiece } = useContext(CapturedPieces);
+	const { playerColor } = useContext(PlayerContext);
+	const socket = useContext(SocketContext);
 
 	function drag(me) {
 		const move = $(me.target);
 		const rect = document.elementFromPoint(me.pageX, me.pageY).getBoundingClientRect();
 		move.css('z-index', 10);
-		
+
 		let lastOffset = move.data('lastTransform');
 		let lastOffsetX = lastOffset ? lastOffset.dx : 0,
 			lastOffsetY = lastOffset ? lastOffset.dy : 0;
@@ -35,27 +36,29 @@ function Piece({ color, position }) {
 			move.data('lastTransform', { dx: newDx, dy: newDy });
 		});
 	}
+	// check if the move being made will cause a check to ones own king, if so move is illegal
+	// change id of moving piece to "NaN" and pretend as if its in its moved position on the destination square
+	// do this while checking for attacks on ones on king (during ones own turn) but not while checking for attacks on the opponents king
+	// at that time you shouldve already switched the id from NaN to the destination position and put it in the destination square on the DOM
 	function endDrag(me) {
 		let moving_piece = $(me.target);
 		const target_id = me.target.id;
 		moving_piece.css('z-index', -100);
-
 		let destination = document.elementFromPoint(me.pageX, me.pageY).id;
+
 		if (destination) {
 			let func = moveFunctions[target_id[0]](destination, target_id);
-			let capturedPiece = $('#' + destination)[0].firstChild;
-			if (func) {
+			if (func) {	
 				let kingPos = $('[id^=k][class*=wh]')[0];
 				let kingPos2 = $('[id^=k][class*=bl]')[0];
 				$('#' + target_id).attr('id', 'NaN');
+
+				var endLocation = [];
+				let capturedPiece = $('#' + destination)[0].firstChild;
+
 				if (capturedPiece) {
 					if ($('#' + capturedPiece.id).attr('color') !== me.target.getAttribute('color') && func !== 'p') {
-						// check if the move being made will cause a check to ones own king, if so move is illegal
-						// change id of moving piece to "NaN" and pretend as if its in its moved position on the destination square
-						// do this while checking for attacks on ones on king (during ones own turn) but not while checking for attacks on the opponents king
-						// at that time you shouldve already switched the id from NaN to the destination position and put it in the destination square on the DOM
 						var moved = true;
-						
 						const check = turn === 'white' ? isCheck(kingPos.id) : isCheck(kingPos2.id);
 						if (check) {
 							$('#NaN').attr('id', target_id);
@@ -70,14 +73,14 @@ function Piece({ color, position }) {
 							let destination2 = document.elementFromPoint(me.pageX, me.pageY);
 							$('#NaN').appendTo('#' + destination2.id);
 							$('#NaN').attr('id', target_id[0] + destination[1] + destination[2]);
-							const check1 = turn === 'white' ? isCheck(kingPos2.id) : isCheck(kingPos.id);
-							console.log(check1);
+							endLocation.push(target_id, target_id[0] + destination[1] + destination[2]);
+							//const check1 = turn === 'white' ? isCheck(kingPos2.id) : isCheck(kingPos.id);
 						}
 					}
 				}
 				else {
 					const check = turn === 'white' ? isCheck(kingPos.id) : isCheck(kingPos2.id);
-					console.log(check, turn === 'white' ? kingPos.id : kingPos2.id);
+					//console.log(check, turn === 'white' ? kingPos.id : kingPos2.id);
 					if (check) {
 						$('#NaN').attr('id', target_id);
 						moved = false;
@@ -86,17 +89,20 @@ function Piece({ color, position }) {
 						moved = true;
 						$('#NaN').appendTo('#' + destination);
 						$('#NaN').attr('id', target_id[0] + destination[1] + destination[2]);
-						const check1 = turn === 'white' ? isCheck(kingPos2.id) : isCheck(kingPos.id);
-						console.log(check1, turn === 'white' ? kingPos2.id : kingPos.id);
+						endLocation.push(target_id, target_id[0] + destination[1] + destination[2]);
+						//const check1 = turn === 'white' ? isCheck(kingPos2.id) : isCheck(kingPos.id);
+						//console.log(check1, turn === 'white' ? kingPos2.id : kingPos.id);
 					}
 				}
 			}
 		}
 		$(document).off('mousemove');
-		moving_piece.css('z-index', 3);
+		moving_piece.css('z-index', 10);
 		moving_piece.css('transform', 'translate(' + 0 + 'px, ' + 0 + 'px)');
 		moving_piece.data('lastTransform', { dx: 0, dy: 0 });
 		if (moved) {
+			socket.emit('turn-location', endLocation);
+
 			if (turn === 'white') setTurn('black');
 			else if (turn === 'black') setTurn('white');
 		}
@@ -270,19 +276,32 @@ function Piece({ color, position }) {
 
 	let the_piece = color + '-' + position[0];
 	const Classes = classNames(classes[color], classes[the_piece]);
-
-	if (position[0] === 'p') {
-		return (
-			<span
-				className={Classes}
-				onMouseDown={drag}
-				onMouseUp={endDrag}
-				id={position}
-				style={{ pointerEvents: turn === color ? 'inherit' : 'none' }}
-				color={color}
-				fmove='true'
-			/>
-		);
+	if (playerColor) {
+		if (position[0] === 'p') {
+			return (
+				<span
+					className={Classes}
+					onMouseDown={drag}
+					onMouseUp={endDrag}
+					id={position}
+					style={{ pointerEvents: turn === color && playerColor === color ? 'inherit' : 'none' }}
+					color={color}
+					fmove='true'
+				/>
+			);
+		}
+		else {
+			return (
+				<span
+					className={Classes}
+					onMouseDown={drag}
+					onMouseUp={endDrag}
+					id={position}
+					style={{ pointerEvents: turn === color && playerColor === color ? 'inherit' : 'none' }}
+					color={color}
+				/>
+			);
+		}
 	}
 	else {
 		return (

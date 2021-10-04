@@ -5,6 +5,7 @@ import { Link, useHistory } from "react-router-dom";
 import classes from "./Dashboard.module.css";
 import Background from "./Background";
 
+
 export default function Dashboard() {
   const [error, setError] = useState("");
   const { currentUser, logout } = useAuth();
@@ -15,12 +16,13 @@ export default function Dashboard() {
     try {
       await logout();
       history.push("/Login");
-    } catch {
+    } 
+    catch {
       setError("Failed to log out");
     }
   }
   function playGame() {
-    history.push("/Game");
+    history.push({pathname: "/Game", state: {detail: currentUser && currentUser.email}});
   }
   return (
     <>

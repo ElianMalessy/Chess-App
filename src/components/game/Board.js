@@ -1,46 +1,88 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import classes from './Board.module.css';
 import { PieceMemo } from './Piece';
+import { PlayerContext } from './Game';
 
-export const TurnContext = React.createContext({ col: 'white', setCol: () => {} });
-function Board() {
-	const [turn, setTurn] = useState('white');
-	const value = {turn, setTurn}
+function Board({ FEN }) {
+	if(!FEN) FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'
 	const board = [];
-	const piece_locations = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
-
-	for (let i = 7; i >= 0; i--) {
-		for (let j = 0; j < 8; j++) {
-			let key = String.fromCharCode(97 + j) + '' + (i + 1);
-			let odd_or_even = (i + j) % 2;
-			let color = null;
-			if (i < 2) color = 'white';
-			else if (i > 5) color = 'black';
-			let piece = <PieceMemo color={color} position={piece_locations[j] + key} />;
-			if (i === 1 || i === 6) piece = <PieceMemo color={color} position={'p' + key} />;
-
-			if (odd_or_even) {
+	var { playerColor } = useContext(PlayerContext);
+	var index = FEN.length;
+	while (true) {
+		if (FEN[index] === 'w' || FEN[index] === 'b') {
+			index -= 2;
+			break;
+		}
+		index--;
+	}
+	//console.log(FEN, playerColor);
+	if (playerColor === 'black') {
+		for (let i = index, row = 1, column = 0; i >= 0; i--, column++) {
+			if (FEN[i] === ' ') break;
+			if (FEN[i] === '/') {
+				row++;
+				column = -1;
+				continue;
+			}
+			// board squares starting from top left to right bottom. a8, b8 to g1, h1
+			let num = parseInt(FEN[i]);
+			if (num) {
+				for (let j = parseInt(FEN[i]); j > 0; j--, column++) {
+					let key = String.fromCharCode(104 - column) + '' + row;
+					let tile_class = (column + row) % 2 === 1 ? 'non-colored-tile' : 'colored-tile';
+					board.push(<div key={key} className={classes[tile_class]} id={'S' + key} />);
+				}
+				if (num < 8) {
+					column--;
+				}
+			}
+			else {
+				let color = FEN[i] === FEN[i].toUpperCase() ? 'white' : 'black';
+				let key = String.fromCharCode(104 - column) + '' + row;
+				let tile_class = (column + row) % 2 === 1 ? 'non-colored-tile' : 'colored-tile';
 				board.push(
-					<div key={key} className={classes['colored-tile']} id={'S' + key}>
-						{color ? piece : null}
+					<div key={key} className={classes[tile_class]} id={'S' + key}>
+						<PieceMemo color={color} position={FEN[i].toLowerCase() + key} />
 					</div>
 				);
 			}
+		}
+	}
+	else {
+		for (let i = 0, row = 8, column = 0; i < FEN.length; i++, column++) {
+			if (FEN[i] === ' ') break;
+			if (FEN[i] === '/') {
+				row--;
+				column = -1;
+				continue;
+			}
+			let num = parseInt(FEN[i]);
+			if (num) {
+				for (let j = num; j > 0; j--, column++) {
+					let key = String.fromCharCode(97 + column) + '' + row;
+					let tile_class = (column + row) % 2 === 0 ? 'non-colored-tile' : 'colored-tile';
+					board.push(<div key={key} className={classes[tile_class]} id={'S' + key} />);
+				}
+				if (num < 8) {
+					column--;
+				}
+			}
 			else {
+				let color = FEN[i] === FEN[i].toUpperCase() ? 'white' : 'black';
+				let key = String.fromCharCode(97 + column) + '' + row;
+				let tile_class = (column + row) % 2 === 0 ? 'non-colored-tile' : 'colored-tile';
 				board.push(
-					<div key={key} className={classes['non-colored-tile']} id={'S' + key}>
-						{color ? piece : null}
+					<div key={key} className={classes[tile_class]} id={'S' + key}>
+						<PieceMemo color={color} position={FEN[i].toLowerCase() + key} />
 					</div>
 				);
 			}
 		}
 	}
 	return (
-		<TurnContext.Provider value={value}>
-			<div className={classes.chessboard} id='board'>
-				{board}
-			</div>
-		</TurnContext.Provider>
+		<div className={classes.chessboard} id='board'>
+			{board}
+		</div>
 	);
 }
 
