@@ -8,7 +8,7 @@ import $ from 'jquery';
 function Piece({ color, position }) {
 	const { turn, setTurn } = useContext(TurnContext);
 	const { setPiece } = useContext(CapturedPieces);
-	const { playerColor } = useContext(PlayerContext);
+	const playerColor = useContext(PlayerContext);
 	const socket = useContext(SocketContext);
 
 	function drag(me) {
@@ -48,7 +48,7 @@ function Piece({ color, position }) {
 
 		if (destination) {
 			let func = moveFunctions[target_id[0]](destination, target_id);
-			if (func) {	
+			if (func) {
 				let kingPos = $('[id^=k][class*=wh]')[0];
 				let kingPos2 = $('[id^=k][class*=bl]')[0];
 				$('#' + target_id).attr('id', 'NaN');

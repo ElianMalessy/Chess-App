@@ -41,9 +41,8 @@ io.on('connection', function(socket) {
 	});
 
 	socket.on('turn-location', function(location) {
-		console.log('turn-location');
-		socket.broadcast.emit('new-turn-location', location);
 		io.emit('update-FEN', location);
+		socket.broadcast.emit('new-turn-location', location);
 	});
 	socket.on('new-turn', function(newTurn) {
 		socket.broadcast.emit('new-turns', newTurn);

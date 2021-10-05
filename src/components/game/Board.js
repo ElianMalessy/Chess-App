@@ -6,7 +6,7 @@ import { PlayerContext } from './Game';
 function Board({ FEN }) {
 	if(!FEN) FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'
 	const board = [];
-	var { playerColor } = useContext(PlayerContext);
+	var playerColor = useContext(PlayerContext);
 	var index = FEN.length;
 	while (true) {
 		if (FEN[index] === 'w' || FEN[index] === 'b') {
@@ -15,7 +15,7 @@ function Board({ FEN }) {
 		}
 		index--;
 	}
-	//console.log(FEN, playerColor);
+	// goes backwards in FEN
 	if (playerColor === 'black') {
 		for (let i = index, row = 1, column = 0; i >= 0; i--, column++) {
 			if (FEN[i] === ' ') break;
