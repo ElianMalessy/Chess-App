@@ -15,10 +15,10 @@ class Player {
 }
 
 io.on('connection', function(socket) {
+	console.log('connect');
 	var player = null;
 	console.log(socket.client.conn.server.clientsCount + ' users connected, conn');
 	users.push(socket.id);
-
 	socket.emit('showing-players', playerPair);
 	socket.on('register', function(id, color, gameID) {
 		// found has to rely on username / email and not on some uuid which changes if you close a tab and open a new one
@@ -29,16 +29,19 @@ io.on('connection', function(socket) {
 
 			playerPair.push(player);
 			if (playerPair.length === 2) game.push(playerPair);
-			
+
 			socket.emit('new-user', playerPair[0].gameID);
+			console.log('emitting new user');
 		}
 		else {
 			player = found;
-			socket.emit('old-user', player.gameID)
+			socket.emit('old-user', player.gameID);
+			console.log('emitting old user');
 		}
 	});
-	
+
 	socket.on('turn-location', function(location) {
+		console.log('turn-location');
 		socket.broadcast.emit('new-turn-location', location);
 		io.emit('update-FEN', location);
 	});
@@ -46,6 +49,7 @@ io.on('connection', function(socket) {
 		socket.broadcast.emit('new-turns', newTurn);
 	});
 	socket.on('disconnect', () => {
+		console.log('disconnect');
 		let index = users.indexOf(socket.id);
 		users.splice(index, 1);
 		console.log(socket.client.conn.server.clientsCount + ' users connected, disconn');

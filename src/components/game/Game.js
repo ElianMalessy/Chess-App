@@ -20,12 +20,7 @@ export default function Game() {
 	// a4, b4, c4, d4. Then a white pawn at e4, then 3 empty squares to the right of the pawn, f4, g4, h4.
 	// CAPITAL LETTERS REPRESENT WHITE, lowercase is black. the 'w' or 'b' represent whose turn it is and the KQkq is castling rights
 
-	$(function() {
-		$('#board').on('contextmenu', function() {
-			return false;
-		});
-	});
-
+	
 	const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
 	const board = useRef([
 		['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
@@ -59,26 +54,13 @@ export default function Game() {
 	const found = useRef(false);
 	useEffect(
 		() => {
+			
 			let col = localStorage.getItem(email);
 			if (col) {
 				console.log(col);
 				temp_color.current = col;
 				found.current = true;
 				setColor(col);
-			}
-			else {
-				// this wont work for normal localStorage as its not shared between computers
-				let keys = Object.keys(localStorage);
-				let i = keys.length;
-
-				while (i--) {
-					if (localStorage.getItem(keys[i]) === 'black') {
-						setColor('white');
-					}
-					else if (localStorage.getItem(keys[i]) === 'white') {
-						setColor('black');
-					}
-				}
 			}
 
 			socket.current.off('showing-players').on('showing-players', (players) => {
@@ -110,6 +92,7 @@ export default function Game() {
 					fixBoardArray();
 				});
 				socket.current.off('new-user').on('new-user', (globalGameID) => {
+					console.log('new-user')
 					if (gameID.current === null) gameID.current = globalGameID;
 					newUserHandler(gameID.current, email, FEN);
 
