@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import { useContext, memo } from 'react';
 import classes from './Board.module.css';
 import classNames from 'classnames';
 import { TurnContext, PlayerContext, SocketContext } from './Game';
@@ -8,9 +8,8 @@ import $ from 'jquery';
 function Piece({ color, position }) {
 	const { turn, setTurn } = useContext(TurnContext);
 	const { setPiece } = useContext(CapturedPieces);
-	const playerColor = useContext(PlayerContext);
+	const { playerColor, gameID } = useContext(PlayerContext);
 	const socket = useContext(SocketContext);
-
 	function drag(me) {
 		const move = $(me.target);
 		const rect = document.elementFromPoint(me.pageX, me.pageY).getBoundingClientRect();
@@ -45,8 +44,8 @@ function Piece({ color, position }) {
 		const target_id = me.target.id;
 		moving_piece.css('z-index', -100);
 		let destination = document.elementFromPoint(me.pageX, me.pageY).id;
-
-		if (destination) {
+		console.log(target_id, destination);
+		if (destination && !(destination[1] === target_id[1] && destination[2] === target_id[2])) {
 			let func = moveFunctions[target_id[0]](destination, target_id);
 			if (func) {
 				let kingPos = $('[id^=k][class*=wh]')[0];
@@ -101,7 +100,7 @@ function Piece({ color, position }) {
 		moving_piece.css('transform', 'translate(' + 0 + 'px, ' + 0 + 'px)');
 		moving_piece.data('lastTransform', { dx: 0, dy: 0 });
 		if (moved) {
-			socket.emit('turn-location', endLocation);
+			socket.emit('turn-location', endLocation, gameID.current);
 
 			if (turn === 'white') setTurn('black');
 			else if (turn === 'black') setTurn('white');
@@ -316,4 +315,4 @@ function Piece({ color, position }) {
 		);
 	}
 }
-export const PieceMemo = React.memo(Piece);
+export const PieceMemo = memo(Piece);

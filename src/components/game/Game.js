@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, createContext } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BoardMemo } from './Board';
+import { Board } from './Board';
 import $ from 'jquery';
 import CapturedPanel from './CapturedPanel';
 import io from 'socket.io-client';
-import { v4 as uuidv4 } from 'uuid';
 import { database } from '../../firebase';
 import { ref, update, set, get } from '@firebase/database';
+//import { useAuth } from '../../contexts/AuthContext';
 
-export const PlayerContext = React.createContext();
-export const TurnContext = React.createContext({ col: 'white', setCol: () => {} });
-export const SocketContext = React.createContext();
+export const PlayerContext = createContext();
+export const TurnContext = createContext({ col: 'white', setCol: () => {} });
+export const SocketContext = createContext();
 
-export default function Game() {
+export default function Game(props) {
 	// default FEN notation: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
 	// after e4: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3
 	// e3 is the en passent square, the numbers tell you how many consecutive squares are emtpy from left to right from the perspective of white
@@ -24,7 +24,6 @@ export default function Game() {
 			return false;
 		});
 	});
-
 	const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
 	const board = useRef([
 		['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
@@ -44,7 +43,7 @@ export default function Game() {
 		setSocketState(socket.current);
 	}, []);
 
-	const [color, setColor] = useState(null);
+	const [playerColor, setplayerColor] = useState(null);
 	const [turn, setTurn] = useState('white');
 	const turnValue = useMemo(
 		() => {
@@ -52,56 +51,60 @@ export default function Game() {
 		},
 		[turn]
 	);
-	const gameID = useRef(null);
-	const temp_color = useRef(null);
-	const email = useLocation().state.detail;
+	let path = props.location.pathname;
+	const gameID = useRef(path.substring(path.lastIndexOf('/') + 1));
+	const temp_playerColor = useRef(null);
+
+	//const { currentUser } = useAuth();
+	const currentUserID = useRef(useLocation().state.detail);
+
 	const found = useRef(false);
 	const setUpTurnChange = useRef(false);
+	useEffect(() => {
+		socket.current.emit('loadIn', gameID.current);
+		let col = localStorage.getItem(currentUserID.current);
+		if (col) {
+			temp_playerColor.current = col;
+			found.current = true;
+			setplayerColor(col);
+		}
+
+		socket.current.emit('register', currentUserID.current, temp_playerColor.current, gameID.current);
+	}, []);
+	useEffect(() => {
+		console.log(board.current, 'stateCHANGED');
+	});
 	useEffect(
 		() => {
-			let col = localStorage.getItem(email);
-			if (col) {
-				temp_color.current = col;
-				found.current = true;
-				setColor(col);
-			}
-
-			socket.current.off('showing-players').on('showing-players', (players) => {
+			socket.current.off('showing-players').on('showing-players', (game) => {
 				if (found.current === false) {
-					if (players.length === 0 || email === players[0].id) {
-						setColor('white');
-						temp_color.current = 'white';
-						localStorage.setItem(email, 'white');
+					if (game.playerCount === 0 || currentUserID.current === game.players[0].id) {
+						setplayerColor('white');
+						temp_playerColor.current = 'white';
+						localStorage.setItem(currentUserID.current, 'white');
 					}
 					else {
-						setColor('black');
-						temp_color.current = 'black';
-						localStorage.setItem(email, 'black');
+						setplayerColor('black');
+						temp_playerColor.current = 'black';
+						localStorage.setItem(currentUserID.current, 'black');
 					}
 				}
-				if (players.length === 0) {
-					gameID.current = uuidv4();
-				}
 
-				socket.current.emit('register', email, temp_color.current, gameID.current);
-
-
-				socket.current.off('old-user').on('old-user', (globalGameID) => {
-					if (gameID.current === null) gameID.current = globalGameID;
-					// checks if there is a FEN in local storage and if there isnt then query the database
+				socket.current.off('old-user').on('old-user', () => {
+					console.log('old-user');
 					fixStuffOnLoad();
 				});
-				socket.current.off('new-user').on('new-user', (globalGameID) => {
-					if (gameID.current === null) gameID.current = globalGameID;
-					newUserHandler(gameID.current, email, FEN);
-					// updates the board which we use to update the FEN after a move on reload so that its not the default position
+				socket.current.off('new-user').on('new-user', () => {
+					console.log('new-user');
+					newUserHandler(gameID.current, currentUserID.current, FEN);
 				});
 			});
 			socket.current.off('update-FEN').on('update-FEN', (newLocation) => {
+				console.log(board.current);
 				let column = newLocation[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
 				let row = parseInt(newLocation[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
 				let piece = board.current[7 - row][column];
-				board.current[7 - row][column] = '1';
+				board.current[7 - row][column] = '1'; // prev square is now empty
 
 				let newColumn = newLocation[1].charCodeAt(1) - 97;
 				let newRow = parseInt(newLocation[1][2]) - 1;
@@ -131,17 +134,15 @@ export default function Game() {
 				// eventually add castling and u good
 				temp_FEN += ' ' + turn[0];
 				if (true) temp_FEN += ' KQkq'; // for castling ***NEEDS FIX***
-				console.log(turn, temp_FEN);
 				if (piece[0].toUpperCase() === 'P' && Math.abs(newLocation[0][2] - newLocation[1][2]) === 2) {
 					let enPassent_sqaure;
-					// if color === black then it was a white move and vice versa
+					// if playerColor === black then it was a white move and vice versa
 					turn === 'black'
 						? (enPassent_sqaure = parseInt(newLocation[0][2]) - 1)
 						: (enPassent_sqaure = parseInt(newLocation[1][2]) - 1);
 					temp_FEN += ' ' + newLocation[0][1] + enPassent_sqaure;
 				}
 				else temp_FEN += ' -';
-				console.log(temp_FEN, 'UPDATE');
 				localStorage.setItem('FEN', temp_FEN);
 				update(ref(database, 'Games/' + gameID.current), {
 					FEN: temp_FEN
@@ -152,7 +153,7 @@ export default function Game() {
 				if (!localStorage_FEN) getFEN(gameID.current);
 				else {
 					setFEN(localStorage_FEN);
-					fixBoardArray();
+					fixBoardArray(localStorage_FEN);
 					fixTurnFromFEN(localStorage_FEN);
 				}
 			}
@@ -161,6 +162,7 @@ export default function Game() {
 				console.log('newUserHandler');
 				await get(dbRef)
 					.then((snapshot) => {
+						console.log(FEN, pushVal);
 						if (snapshot.exists()) {
 							update(dbRef, {
 								player2: pushVal
@@ -179,9 +181,7 @@ export default function Game() {
 			}
 			function fixTurnFromFEN(FEN) {
 				// switching from b in FEN to w immediately after a white move, in both local storage and in firebase
-				console.log(FEN, 'FIXTURN', turn);
 				for (let i = FEN.length - 1; i >= 0; i--) {
-					console.log(FEN[i]);
 					if (FEN[i] === turn[0]) break;
 					if (FEN[i] === 'w' && turn !== 'white') {
 						setTurn('white');
@@ -195,22 +195,28 @@ export default function Game() {
 					}
 				}
 			}
-			function fixBoardArray() {
-				console.log(board.current, FEN);
+			function fixBoardArray(localStorage_FEN) {
+				console.log('fixingBoardArray', localStorage_FEN);
+				var temp_board = board.current;
+				console.log(temp_board)
 				let FEN_index = 0;
 				for (let i = 0; i < 8; i++) {
 					for (let j = 0; j < 8; j++, FEN_index++) {
-						if (FEN[FEN_index] === '/') FEN_index++;
-						let num = parseInt(FEN[FEN_index]);
+						if (localStorage_FEN[FEN_index] === '/') FEN_index++;
+						let num = parseInt(localStorage_FEN[FEN_index]);
 						if (num) {
-							while (num > 0) {
+							if(num === 1) {
+								board.current[i][j] = '1';
+								j++;
+							}
+							while (num > 1) {
 								board.current[i][j] = '1';
 								num--;
 								j++;
 							}
 						}
 						else {
-							board.current[i][j] = FEN[FEN_index];
+							board.current[i][j] = localStorage_FEN[FEN_index];
 						}
 					}
 				}
@@ -222,9 +228,8 @@ export default function Game() {
 						if (snapshot.exists()) {
 							let temp_FEN = snapshot.val().FEN;
 							localStorage.setItem('FEN', temp_FEN);
-							console.log(localStorage.getItem('FEN'), temp_FEN);
 							fixTurnFromFEN(temp_FEN);
-							fixBoardArray();
+							fixBoardArray(temp_FEN);
 							setFEN(temp_FEN);
 						}
 						else {
@@ -236,12 +241,11 @@ export default function Game() {
 					});
 			}
 		},
-		[email, FEN, turn]
+		[turn, FEN]
 	);
-
 	useEffect(
 		() => {
-			socket.current.emit('new-turn', turn);
+			socket.current.emit('new-turn', turn, gameID.current);
 			socket.current.off('new-turn-location').on('new-turn-location', (newLocation) => {
 				console.log(newLocation);
 
@@ -258,9 +262,9 @@ export default function Game() {
 			});
 			socket.current.off('new-turns').on('new-turns', (newTurn) => {
 				if (turn !== newTurn && setUpTurnChange.current === false) {
-					console.log(turn)
 					setTurn(newTurn);
 				}
+				else if (setUpTurnChange.current === true) setUpTurnChange.current = false;
 			});
 		},
 		[turn]
@@ -274,9 +278,9 @@ export default function Game() {
 	);
 	const player = useMemo(
 		() => {
-			return color;
+			return { playerColor, gameID };
 		},
-		[color]
+		[playerColor]
 	);
 	const FEN_MEMO = useMemo(
 		() => {
@@ -290,7 +294,7 @@ export default function Game() {
 				<CapturedPanel>
 					<TurnContext.Provider value={turnValue}>
 						<SocketContext.Provider value={socketMemo}>
-							<BoardMemo FEN={FEN_MEMO} />
+							<Board FEN={FEN_MEMO} />
 						</SocketContext.Provider>
 					</TurnContext.Provider>
 				</CapturedPanel>

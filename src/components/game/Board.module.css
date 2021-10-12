@@ -3,7 +3,7 @@
     flex-wrap: wrap;
     width: 35em;
     height: 35em;
-    background-color: blue;
+    background-color: hsla(0, 0%, 4%, 0.604)
 }
 .colored-tile,
 .non-colored-tile, .captured, .captured-bg {

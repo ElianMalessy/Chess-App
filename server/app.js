@@ -4,8 +4,10 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
 const users = [];
-const playerPair = [];
-const game = [];
+const games = Array(100);
+for (let i = 0; i < 100; i++) {
+	games[i] = { playerCount: 0, players: [{ id: 0, color: 0, gameID: 0 }, { id: 0, color: 0, gameID: 0 }] };
+}
 class Player {
 	constructor(id, color, gameID) {
 		this.id = id;
@@ -15,37 +17,53 @@ class Player {
 }
 
 io.on('connection', function(socket) {
-	console.log('connect');
 	var player = null;
 	console.log(socket.client.conn.server.clientsCount + ' users connected, conn');
 	users.push(socket.id);
-	socket.emit('showing-players', playerPair);
+	socket.on('loadIn', function(gameID) {
+		socket.join(gameID);
+		socket.emit('showing-players', games[gameID]);
+	});
+
 	socket.on('register', function(id, color, gameID) {
-		// found has to rely on username / email and not on some uuid which changes if you close a tab and open a new one
-		var found = playerPair.find((playerObj) => playerObj.id === id);
+		if (id === null) return;
+
+		var found = games.find((gameObj) => gameObj.players[0].id === id || gameObj.players[1].id === id);
+		if (found !== undefined && found.players[0].id === id) found = found.players[0];
+		else if (found !== undefined && found.players[1].id === id) found = found.players[1];
+
 		if (!found) {
-			if (gameID) player = new Player(id, color, gameID);
-			else player = new Player(id, color, playerPair[0].gameID);
+			player = new Player(id, color, gameID);
+			if (games[gameID].playerCount < 2) {
+				if (games[gameID].players[0].id === 0) {
+					games[gameID].players[0].id = player.id;
+					games[gameID].players[0].color = player.color;
+					games[gameID].players[0].gameID = player.gameID;
+				}
+				else {
+					games[gameID].players[1].id = player.id;
+					games[gameID].players[1].color = player.color;
+					games[gameID].players[1].gameID = player.gameID;
+				}
+				games[gameID].playerCount++;
+			}
 
-			playerPair.push(player);
-			if (playerPair.length === 2) game.push(playerPair);
-
-			socket.emit('new-user', playerPair[0].gameID);
+			socket.emit('new-user');
 			console.log('emitting new user');
 		}
 		else {
 			player = found;
-			socket.emit('old-user', player.gameID);
+			socket.emit('old-user');
 			console.log('emitting old user');
 		}
 	});
 
-	socket.on('turn-location', function(location) {
-		io.emit('update-FEN', location);
-		socket.broadcast.emit('new-turn-location', location);
+	socket.on('turn-location', function(location, gameID) {
+		io.to(gameID).emit('update-FEN', location);
+		socket.to(gameID).emit('new-turn-location', location);
 	});
-	socket.on('new-turn', function(newTurn) {
-		socket.broadcast.emit('new-turns', newTurn);
+	socket.on('new-turn', function(newTurn, gameID) {
+		socket.to(gameID).emit('new-turns', newTurn);
 	});
 	socket.on('disconnect', () => {
 		console.log('disconnect');

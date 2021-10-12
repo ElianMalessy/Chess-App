@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, createContext } from 'react';
 import { Card } from 'react-bootstrap';
 import classes from './Board.module.css';
 import $ from 'jquery';
 
-export const CapturedPieces = React.createContext({ pieces: null, setPiece: () => {} });
+export const CapturedPieces = createContext({ pieces: null, setPiece: () => {} });
 
 export default function CapturedPanel(props) {
 	const [num, setNum] = useState(0);
@@ -38,7 +38,7 @@ export default function CapturedPanel(props) {
 	);
 
 	return (
-        <>
+        <div>
 		    <CapturedPieces.Provider value={value}>
 		    	{props.children}
 		    	<Card className='w-100' style={{ maxWidth: 800, backgroundColor: '#0a0a0a9a' }}>
@@ -46,6 +46,6 @@ export default function CapturedPanel(props) {
 		    	</Card>
 		    </CapturedPieces.Provider>
 		    <div id='fuck' />
-        </>
+        </div>
 	);
 }
