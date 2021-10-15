@@ -1,24 +1,26 @@
-import { useContext, useEffect, useState, useRef } from 'react';
+import { useContext, useEffect, useState, useRef, memo } from 'react';
 import classes from './Board.module.css';
 import { PieceMemo } from './Piece';
 import { PlayerContext } from './Game';
 
-export function Board({ FEN }) {
-	if (!FEN) FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+function Board() {
+	const FEN = useRef(localStorage.getItem('FEN'));
+	if (!FEN.current) FEN.current = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+
 	const [board, setBoard] = useState([]);
 	const boardFiller = useRef([]);
 	const { playerColor } = useContext(PlayerContext);
+	// goes backwards in FEN.current
 
-	// goes backwards in FEN
-	// STILL BROKEN AF
 	useEffect(
 		() => {
 			let emptyBoard = [];
 			boardFiller.current = emptyBoard;
+			setBoard(emptyBoard);
 
-			var index = FEN.length;
+			var index = FEN.current.length;
 			while (true) {
-				if (FEN[index] === 'w' || FEN[index] === 'b') {
+				if (FEN.current[index] === 'w' || FEN.current[index] === 'b') {
 					index -= 2;
 					break;
 				}
@@ -26,16 +28,17 @@ export function Board({ FEN }) {
 			}
 			if (playerColor === 'black') {
 				for (let i = index, row = 1, column = 0; i >= 0; i--, column++) {
-					if (FEN[i] === ' ') break;
-					if (FEN[i] === '/') {
+					if (FEN.current[i] === ' ') break;
+					if (FEN.current[i] === '/') {
 						row++;
 						column = -1;
 						continue;
 					}
+
 					// board squares starting from top left to right bottom. a8, b8 to g1, h1
-					let num = parseInt(FEN[i]);
+					let num = parseInt(FEN.current[i]);
 					if (num) {
-						for (let j = parseInt(FEN[i]); j > 0; j--, column++) {
+						for (let j = parseInt(FEN.current[i]); j > 0; j--, column++) {
 							let key = String.fromCharCode(104 - column) + '' + row;
 							let tile_class = (column + row) % 2 === 1 ? 'non-colored-tile' : 'colored-tile';
 							boardFiller.current.push(<div key={key} className={classes[tile_class]} id={'S' + key} />);
@@ -45,27 +48,27 @@ export function Board({ FEN }) {
 						}
 					}
 					else {
-						let color = FEN[i] === FEN[i].toUpperCase() ? 'white' : 'black';
-						console.log(color);
+						let color = FEN.current[i] === FEN.current[i].toUpperCase() ? 'white' : 'black';
 						let key = String.fromCharCode(104 - column) + '' + row;
 						let tile_class = (column + row) % 2 === 1 ? 'non-colored-tile' : 'colored-tile';
 						boardFiller.current.push(
 							<div key={key} className={classes[tile_class]} id={'S' + key}>
-								<PieceMemo color={color} position={FEN[i].toLowerCase() + key} />
+								<PieceMemo color={color} position={FEN.current[i].toLowerCase() + key} />
 							</div>
 						);
 					}
 				}
 			}
 			else {
-				for (let i = 0, row = 8, column = 0; i < FEN.length; i++, column++) {
-					if (FEN[i] === ' ') break;
-					if (FEN[i] === '/') {
+				for (let i = 0, row = 8, column = 0; i < FEN.current.length; i++, column++) {
+					if (FEN.current[i] === ' ') break;
+					if (FEN.current[i] === '/') {
 						row--;
 						column = -1;
 						continue;
 					}
-					let num = parseInt(FEN[i]);
+
+					let num = parseInt(FEN.current[i]);
 					if (num) {
 						for (let j = num; j > 0; j--, column++) {
 							let key = String.fromCharCode(97 + column) + '' + row;
@@ -77,12 +80,12 @@ export function Board({ FEN }) {
 						}
 					}
 					else {
-						let color = FEN[i] === FEN[i].toUpperCase() ? 'white' : 'black';
+						let color = FEN.current[i] === FEN.current[i].toUpperCase() ? 'white' : 'black';
 						let key = String.fromCharCode(97 + column) + '' + row;
 						let tile_class = (column + row) % 2 === 0 ? 'non-colored-tile' : 'colored-tile';
 						boardFiller.current.push(
 							<div key={key} className={classes[tile_class]} id={'S' + key}>
-								<PieceMemo color={color} position={FEN[i].toLowerCase() + key} />
+								<PieceMemo color={color} position={FEN.current[i].toLowerCase() + key} />
 							</div>
 						);
 					}
@@ -90,7 +93,8 @@ export function Board({ FEN }) {
 			}
 			setBoard(boardFiller.current);
 		},
-		[FEN, playerColor]
+		// eslint-disable-next-line
+		[playerColor]
 	);
 
 	return (
@@ -99,3 +103,4 @@ export function Board({ FEN }) {
 		</div>
 	);
 }
+export const BoardMemo = memo(Board);

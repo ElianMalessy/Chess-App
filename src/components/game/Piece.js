@@ -1,12 +1,12 @@
-import { useContext, memo } from 'react';
+import { useContext } from 'react';
 import classes from './Board.module.css';
 import classNames from 'classnames';
 import { TurnContext, PlayerContext, SocketContext } from './Game';
 import { CapturedPieces } from './CapturedPanel';
 import $ from 'jquery';
 
-function Piece({ color, position }) {
-	const { turn, setTurn } = useContext(TurnContext);
+export function PieceMemo({ color, position }) {
+	const { turn } = useContext(TurnContext);
 	const { setPiece } = useContext(CapturedPieces);
 	const { playerColor, gameID } = useContext(PlayerContext);
 	const socket = useContext(SocketContext);
@@ -100,10 +100,8 @@ function Piece({ color, position }) {
 		moving_piece.css('transform', 'translate(' + 0 + 'px, ' + 0 + 'px)');
 		moving_piece.data('lastTransform', { dx: 0, dy: 0 });
 		if (moved) {
-			socket.emit('turn-location', endLocation, gameID.current);
-
-			if (turn === 'white') setTurn('black');
-			else if (turn === 'black') setTurn('white');
+			// when this player has made a move, broadcast that to the other player
+			socket.emit('turn-location', endLocation, gameID.current, turn === 'white' ? 'black' : 'white');
 		}
 	}
 	function isCheck(kingPos) {
@@ -315,4 +313,3 @@ function Piece({ color, position }) {
 		);
 	}
 }
-export const PieceMemo = memo(Piece);

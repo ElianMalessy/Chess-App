@@ -58,15 +58,15 @@ io.on('connection', function(socket) {
 		}
 	});
 
-	socket.on('turn-location', function(location, gameID) {
-		io.to(gameID).emit('update-FEN', location);
-		socket.to(gameID).emit('new-turn-location', location);
+	socket.on('turn-location', function(location, gameID, turnColor) {
+		socket.to(gameID).emit('new-location', location);
+		io.to(gameID).emit('update-FEN', location, turnColor); //io because localStorage differs across users
+		//socket.to(gameID).emit('new-turn-location', location);
 	});
-	socket.on('new-turn', function(newTurn, gameID) {
-		socket.to(gameID).emit('new-turns', newTurn);
-	});
+
 	socket.on('disconnect', () => {
 		console.log('disconnect');
+		socket.leave(socket.rooms);
 		let index = users.indexOf(socket.id);
 		users.splice(index, 1);
 		console.log(socket.client.conn.server.clientsCount + ' users connected, disconn');

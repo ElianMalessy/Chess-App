@@ -38,9 +38,18 @@ export default function Login() {
 	}
 	return (
 		<Fragment>
-			<Container className='d-flex align-items-center justify-content-center' style={{ minHeight: '100vh' }}>
-				<div className='w-100' style={{ maxWidth: 500 }}>
-					<Card>
+			<Container
+				className='d-flex align-items-center justify-content-center'
+				style={{
+					minHeight: '100vh',
+					minWidth: '100vw',
+					backgroundSize: 'cover',
+					backgroundImage:
+						'url(https://images.chesscomfiles.com/uploads/v1/article/17623.87bb05cd.668x375o.47d81802f1eb@2x.jpeg)'
+				}}
+			>
+				<div className='w-100' style={{ maxWidth: 500, backgroundColor: '#1F1F1F', color: 'white' }}>
+					<Card style={{ backgroundColor: '#1F1F1F' }}>
 						<Card.Body>
 							<h2 className='text-center mb-4'>Log In</h2>
 							{loginError && <Alert variant='danger'>{loginError}</Alert>}
@@ -67,7 +76,7 @@ export default function Login() {
 							Play as guest
 						</Button>
 					</div>
-					<div className='w-100 text-center mt-2'>
+					<div className='w-100 text-center mt-2 mb-3'>
 						Need an account? <Link to='/Signup'>Sign Up</Link>
 					</div>
 				</div>

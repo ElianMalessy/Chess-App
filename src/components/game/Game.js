@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef, createContext } from 'react';
+import { useState, useEffect, useMemo, useRef, createContext, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Board } from './Board';
+import { BoardMemo } from './Board';
 import $ from 'jquery';
 import CapturedPanel from './CapturedPanel';
 import io from 'socket.io-client';
@@ -24,7 +24,7 @@ export default function Game(props) {
 			return false;
 		});
 	});
-	const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
+
 	const board = useRef([
 		['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
 		['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'], // black
@@ -38,6 +38,7 @@ export default function Game(props) {
 
 	const socket = useRef(null);
 	const [socketState, setSocketState] = useState(null);
+
 	useEffect(() => {
 		socket.current = io('http://localhost:3000');
 		setSocketState(socket.current);
@@ -58,26 +59,100 @@ export default function Game(props) {
 	//const { currentUser } = useAuth();
 	const currentUserID = useRef(useLocation().state.detail);
 
-	const found = useRef(false);
 	const setUpTurnChange = useRef(false);
+	const fixBoardArray = useCallback((localStorage_FEN) => {
+		console.log('fixingBoardArray', localStorage_FEN, board.current);
+		let FEN_index = 0;
+		for (let i = 0; i < 8; i++) {
+			for (let j = 0; j < 8; j++, FEN_index++) {
+				if (localStorage_FEN[FEN_index] === '/') FEN_index++;
+				let num = parseInt(localStorage_FEN[FEN_index]);
+				if (num) {
+					if (num === 1) {
+						board.current[i][j] = '1';
+					}
+					else {
+						while (num > 1) {
+							board.current[i][j] = '1';
+							num--;
+							j++;
+						}
+					}
+				}
+				else {
+					board.current[i][j] = localStorage_FEN[FEN_index];
+				}
+			}
+		}
+	}, []);
+	const fixTurnFromFEN = useCallback(
+		(FEN) => {
+			// switching from b in FEN to w immediately after a white move, in both local storage and in firebase
+			for (let i = FEN.length - 1; i >= 0; i--) {
+				if (FEN[i] === turn[0]) break;
+				if (FEN[i] === 'w' && turn !== 'white') {
+					setTurn('white');
+					setUpTurnChange.current = true;
+					break;
+				}
+				else if (FEN[i] === 'b' && turn !== 'black') {
+					setTurn('black');
+					setUpTurnChange.current = true;
+					break;
+				}
+			}
+		},
+		[turn]
+	);
+	const getFEN = useCallback(
+		async (gameID) => {
+			const dbRef = ref(database, 'Games/' + gameID);
+			await get(dbRef)
+				.then((snapshot) => {
+					if (snapshot.exists()) {
+						let temp_FEN = snapshot.val().FEN;
+						localStorage.setItem('FEN', temp_FEN);
+						fixTurnFromFEN(temp_FEN);
+						fixBoardArray(temp_FEN);
+					}
+					else {
+						console.log('No data available');
+					}
+				})
+				.catch((error) => {
+					console.error(error);
+				});
+		},
+		[fixBoardArray, fixTurnFromFEN]
+	);
+	const fixStuffOnLoad = useCallback(
+		(reload) => {
+			let localStorage_FEN = localStorage.getItem('FEN');
+			if (!localStorage_FEN) getFEN(gameID.current);
+			else {
+				fixBoardArray(localStorage_FEN);
+				if (reload) fixTurnFromFEN(localStorage_FEN);
+			}
+		},
+		[fixBoardArray, getFEN, fixTurnFromFEN]
+	);
+
 	useEffect(() => {
 		socket.current.emit('loadIn', gameID.current);
-		let col = localStorage.getItem(currentUserID.current);
-		if (col) {
-			temp_playerColor.current = col;
-			found.current = true;
-			setplayerColor(col);
-		}
-
 		socket.current.emit('register', currentUserID.current, temp_playerColor.current, gameID.current);
 	}, []);
-	useEffect(() => {
-		console.log(board.current, 'stateCHANGED');
-	});
 	useEffect(
 		() => {
 			socket.current.off('showing-players').on('showing-players', (game) => {
-				if (found.current === false) {
+				let col = localStorage.getItem(currentUserID.current);
+				let found = false;
+				if (col) {
+					temp_playerColor.current = col;
+					found = true;
+					setplayerColor(col);
+				}
+
+				if (found === false) {
 					if (game.playerCount === 0 || currentUserID.current === game.players[0].id) {
 						setplayerColor('white');
 						temp_playerColor.current = 'white';
@@ -89,18 +164,69 @@ export default function Game(props) {
 						localStorage.setItem(currentUserID.current, 'black');
 					}
 				}
-
 				socket.current.off('old-user').on('old-user', () => {
 					console.log('old-user');
-					fixStuffOnLoad();
+					fixStuffOnLoad(true);
 				});
+
 				socket.current.off('new-user').on('new-user', () => {
 					console.log('new-user');
-					newUserHandler(gameID.current, currentUserID.current, FEN);
+
+					newUserHandler(
+						gameID.current,
+						currentUserID.current,
+						'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'
+					);
 				});
 			});
-			socket.current.off('update-FEN').on('update-FEN', (newLocation) => {
-				console.log(board.current);
+
+			async function newUserHandler(gameID, pushVal, FEN) {
+				const dbRef = ref(database, 'Games/' + gameID);
+				console.log('newUserHandler');
+				await get(dbRef)
+					.then((snapshot) => {
+						if (snapshot.exists()) {
+							update(dbRef, {
+								player2: pushVal
+							}).then(fixStuffOnLoad(false));
+						}
+						else {
+							set(dbRef, {
+								player1: pushVal,
+								FEN: FEN
+							}).then(fixStuffOnLoad(false));
+						}
+					})
+					.catch((error) => {
+						console.error(error);
+					});
+			}
+		},
+		[fixStuffOnLoad]
+	);
+
+	useEffect(
+		() => {
+			socket.current.off('new-location').on('new-location', (newLocation) => {
+				let old_location = $('#' + newLocation[0]);
+				let destination = $('[id*=' + newLocation[1][1] + newLocation[1][2] + ']')[0];
+
+				let capturedPiece = $('#' + destination.id)[0].firstChild;
+				if (capturedPiece) {
+					$('#' + capturedPiece.id).css('opacity', 0);
+					$('#' + capturedPiece.id).appendTo('#fuck');
+					$('#' + capturedPiece.id).attr('id', 'capturedPiece');
+				}
+				old_location.appendTo($('#S' + newLocation[1][1] + newLocation[1][2]));
+				old_location.attr('id', old_location[0].id[0] + newLocation[1][1] + newLocation[1][2]);
+			});
+
+			socket.current.off('update-FEN').on('update-FEN', (newLocation, newTurn) => {
+				if (turn !== newTurn && setUpTurnChange.current === false) {
+					setTurn(newTurn);
+				}
+				else if (setUpTurnChange.current === true) setUpTurnChange.current = false;
+
 				let column = newLocation[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
 				let row = parseInt(newLocation[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
 				let piece = board.current[7 - row][column];
@@ -132,169 +258,46 @@ export default function Game(props) {
 					if (i !== 7) temp_FEN += '/';
 				}
 				// eventually add castling and u good
-				temp_FEN += ' ' + turn[0];
+				temp_FEN += ' ' + newTurn[0];
 				if (true) temp_FEN += ' KQkq'; // for castling ***NEEDS FIX***
 				if (piece[0].toUpperCase() === 'P' && Math.abs(newLocation[0][2] - newLocation[1][2]) === 2) {
 					let enPassent_sqaure;
 					// if playerColor === black then it was a white move and vice versa
-					turn === 'black'
+					newTurn === 'black'
 						? (enPassent_sqaure = parseInt(newLocation[0][2]) - 1)
 						: (enPassent_sqaure = parseInt(newLocation[1][2]) - 1);
 					temp_FEN += ' ' + newLocation[0][1] + enPassent_sqaure;
 				}
 				else temp_FEN += ' -';
+
+				console.log(temp_FEN);
 				localStorage.setItem('FEN', temp_FEN);
 				update(ref(database, 'Games/' + gameID.current), {
 					FEN: temp_FEN
 				});
-			});
-			function fixStuffOnLoad() {
-				let localStorage_FEN = localStorage.getItem('FEN');
-				if (!localStorage_FEN) getFEN(gameID.current);
-				else {
-					setFEN(localStorage_FEN);
-					fixBoardArray(localStorage_FEN);
-					fixTurnFromFEN(localStorage_FEN);
-				}
-			}
-			async function newUserHandler(gameID, pushVal, FEN) {
-				const dbRef = ref(database, 'Games/' + gameID);
-				console.log('newUserHandler');
-				await get(dbRef)
-					.then((snapshot) => {
-						console.log(FEN, pushVal);
-						if (snapshot.exists()) {
-							update(dbRef, {
-								player2: pushVal
-							}).then(fixStuffOnLoad());
-						}
-						else {
-							set(dbRef, {
-								player1: pushVal,
-								FEN: FEN
-							}).then(fixStuffOnLoad());
-						}
-					})
-					.catch((error) => {
-						console.error(error);
-					});
-			}
-			function fixTurnFromFEN(FEN) {
-				// switching from b in FEN to w immediately after a white move, in both local storage and in firebase
-				for (let i = FEN.length - 1; i >= 0; i--) {
-					if (FEN[i] === turn[0]) break;
-					if (FEN[i] === 'w' && turn !== 'white') {
-						setTurn('white');
-						setUpTurnChange.current = true;
-						break;
-					}
-					else if (FEN[i] === 'b' && turn !== 'black') {
-						setTurn('black');
-						setUpTurnChange.current = true;
-						break;
-					}
-				}
-			}
-			function fixBoardArray(localStorage_FEN) {
-				console.log('fixingBoardArray', localStorage_FEN);
-				var temp_board = board.current;
-				console.log(temp_board)
-				let FEN_index = 0;
-				for (let i = 0; i < 8; i++) {
-					for (let j = 0; j < 8; j++, FEN_index++) {
-						if (localStorage_FEN[FEN_index] === '/') FEN_index++;
-						let num = parseInt(localStorage_FEN[FEN_index]);
-						if (num) {
-							if(num === 1) {
-								board.current[i][j] = '1';
-								j++;
-							}
-							while (num > 1) {
-								board.current[i][j] = '1';
-								num--;
-								j++;
-							}
-						}
-						else {
-							board.current[i][j] = localStorage_FEN[FEN_index];
-						}
-					}
-				}
-			}
-			async function getFEN(gameID) {
-				const dbRef = ref(database, 'Games/' + gameID);
-				await get(dbRef)
-					.then((snapshot) => {
-						if (snapshot.exists()) {
-							let temp_FEN = snapshot.val().FEN;
-							localStorage.setItem('FEN', temp_FEN);
-							fixTurnFromFEN(temp_FEN);
-							fixBoardArray(temp_FEN);
-							setFEN(temp_FEN);
-						}
-						else {
-							console.log('No data available');
-						}
-					})
-					.catch((error) => {
-						console.error(error);
-					});
-			}
-		},
-		[turn, FEN]
-	);
-	useEffect(
-		() => {
-			socket.current.emit('new-turn', turn, gameID.current);
-			socket.current.off('new-turn-location').on('new-turn-location', (newLocation) => {
-				console.log(newLocation);
+				fixStuffOnLoad(false);
 
-				let old_location = $('#' + newLocation[0]);
-				let destination = $('[id*=' + newLocation[1][1] + newLocation[1][2] + ']')[0];
-				let capturedPiece = $('#' + destination.id)[0].firstChild;
-				if (capturedPiece) {
-					$('#' + capturedPiece.id).css('opacity', 0);
-					$('#' + capturedPiece.id).appendTo('#fuck');
-					$('#' + capturedPiece.id).attr('id', 'capturedPiece');
-				}
-				old_location.appendTo($('#S' + newLocation[1][1] + newLocation[1][2]));
-				old_location.attr('id', old_location[0].id[0] + newLocation[1][1] + newLocation[1][2]);
-			});
-			socket.current.off('new-turns').on('new-turns', (newTurn) => {
-				if (turn !== newTurn && setUpTurnChange.current === false) {
-					setTurn(newTurn);
-				}
-				else if (setUpTurnChange.current === true) setUpTurnChange.current = false;
 			});
 		},
-		[turn]
+		[fixStuffOnLoad, turn]
 	);
 
-	const socketMemo = useMemo(
-		() => {
-			return socketState;
-		},
-		[socketState]
-	);
 	const player = useMemo(
 		() => {
 			return { playerColor, gameID };
 		},
 		[playerColor]
 	);
-	const FEN_MEMO = useMemo(
-		() => {
-			return FEN;
-		},
-		[FEN]
-	);
 	return (
 		<div style={{ height: '100vh', display: 'grid', placeContent: 'center', backgroundColor: '#3b3b3b' }} id='page'>
+			<div style={{color: 'white', fontSize: 20}}>
+				turn: {turn}
+			</div>
 			<PlayerContext.Provider value={player}>
 				<CapturedPanel>
 					<TurnContext.Provider value={turnValue}>
-						<SocketContext.Provider value={socketMemo}>
-							<Board FEN={FEN_MEMO} />
+						<SocketContext.Provider value={socketState}>
+							<BoardMemo />
 						</SocketContext.Provider>
 					</TurnContext.Provider>
 				</CapturedPanel>
