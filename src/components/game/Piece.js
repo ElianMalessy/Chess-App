@@ -54,7 +54,6 @@ export function PieceMemo({ color, position }) {
 
 				var endLocation = [];
 				let capturedPiece = $('#' + destination)[0].firstChild;
-
 				if (capturedPiece) {
 					if ($('#' + capturedPiece.id).attr('color') !== me.target.getAttribute('color') && func !== 'p') {
 						var moved = true;
@@ -66,8 +65,7 @@ export function PieceMemo({ color, position }) {
 						else {
 							setPiece($('#' + capturedPiece.id)[0]);
 							$('#' + capturedPiece.id).css('opacity', 0);
-							$('#' + capturedPiece.id).appendTo('#fuck');
-							$('#' + capturedPiece.id).attr('id', 'capturedPiece');
+							$('#' + capturedPiece.id).remove()
 
 							let destination2 = document.elementFromPoint(me.pageX, me.pageY);
 							$('#NaN').appendTo('#' + destination2.id);
@@ -241,6 +239,7 @@ export function PieceMemo({ color, position }) {
 					pawn.removeAttr('fmove');
 					return true;
 				}
+				// en passent
 			}
 			else if (destLetter - origLetter === 0 && pawn.attr('color') === 'white') {
 				if (pawnAttr) {

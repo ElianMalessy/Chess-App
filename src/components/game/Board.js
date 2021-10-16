@@ -58,7 +58,7 @@ function Board({ currentUser }) {
 							column--;
 						}
 					}
-					else {
+					else { // add fmove from fen, also en passent square
 						let color = FEN.current[i] === FEN.current[i].toUpperCase() ? 'white' : 'black';
 						let key = String.fromCharCode(104 - column) + '' + row;
 						let tile_class = (column + row) % 2 === 1 ? 'non-colored-tile' : 'colored-tile';

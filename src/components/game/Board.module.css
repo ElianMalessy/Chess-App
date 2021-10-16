@@ -17,9 +17,7 @@
 	width: 4.375em;
 	height: 4.375em;
 }
-.captured {
-    position: relative
-}
+
 .colored-tile {
 	background-color: hsl(30, 52%, 48%);
 }
@@ -35,26 +33,13 @@
 	pointer-events: none;
 	width: 4em;
 	height: 4em;
+    position: relative
 }
 .mainPage {
 	height: 100vh;
 	display: grid;
 	place-content: center;
 	background-color: #3b3b3b;
-}
-
-.white-turn-text {
-	text-align: center;
-	color: #0a0a0a9a;
-	font-family: 'open sans';
-	font-size: 55px;
-}
-
-.black-turn-text {
-	text-align: center;
-	font-family: 'open sans';
-	font-size: 55px;
-	color: lightgray;
 }
 
 .white,

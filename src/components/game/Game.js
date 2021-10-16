@@ -61,7 +61,6 @@ export default function Game(props) {
 
 	const setUpTurnChange = useRef(false);
 	const fixBoardArray = useCallback((localStorage_FEN) => {
-		console.log('fixingBoardArray', localStorage_FEN, board.current);
 		let FEN_index = 0;
 		for (let i = 0; i < 8; i++) {
 			for (let j = 0; j < 8; j++, FEN_index++) {
@@ -85,24 +84,21 @@ export default function Game(props) {
 			}
 		}
 	}, []);
-	const fixTurnFromFEN = useCallback(
-		(FEN) => {
-			// switching from b in FEN to w immediately after a white move, in both local storage and in firebase
-			for (let i = FEN.length - 1; i >= 0; i--) {
-				if (FEN[i] === 'w') {
-					setTurn('white');
-					setUpTurnChange.current = true;
-					break;
-				}
-				else if (FEN[i] === 'b') {
-					setTurn('black');
-					setUpTurnChange.current = true;
-					break;
-				}
+	const fixTurnFromFEN = useCallback((FEN) => {
+		// switching from b in FEN to w immediately after a white move, in both local storage and in firebase
+		for (let i = FEN.length - 1; i >= 0; i--) {
+			if (FEN[i] === 'w') {
+				setTurn('white');
+				setUpTurnChange.current = true;
+				break;
 			}
-		},
-		[]
-	);
+			else if (FEN[i] === 'b') {
+				setTurn('black');
+				setUpTurnChange.current = true;
+				break;
+			}
+		}
+	}, []);
 	const getFEN = useCallback(
 		async (gameID) => {
 			const dbRef = ref(database, 'Games/' + gameID);
@@ -136,14 +132,21 @@ export default function Game(props) {
 		[fixBoardArray, getFEN, fixTurnFromFEN]
 	);
 
+	const foundColor = useRef(false);
 	useEffect(() => {
 		socket.current.emit('loadIn', gameID.current);
 		socket.current.emit('register', currentUserID.current, gameID.current);
+
+		let col = localStorage.getItem(currentUserID.current);
+		if (col) {
+			foundColor.current = true;
+			setplayerColor(col);
+		}
 	}, []);
 	useEffect(
 		() => {
 			socket.current.off('showing-players').on('showing-players', (game) => {
-				if (!localStorage.getItem(currentUserID.current)) {
+				if (!foundColor.current) {
 					if (game.playerCount === 0 || currentUserID.current === game.players[0].id) {
 						setplayerColor('white');
 						localStorage.setItem(currentUserID.current, 'white');
@@ -153,7 +156,7 @@ export default function Game(props) {
 						localStorage.setItem(currentUserID.current, 'black');
 					}
 				}
-				
+
 				socket.current.off('old-user').on('old-user', () => {
 					console.log('old-user');
 					fixStuffOnLoad(true);
@@ -204,11 +207,15 @@ export default function Game(props) {
 				let capturedPiece = $('#' + destination.id)[0].firstChild;
 				if (capturedPiece) {
 					$('#' + capturedPiece.id).css('opacity', 0);
-					$('#' + capturedPiece.id).appendTo('#fuck');
-					$('#' + capturedPiece.id).attr('id', 'capturedPiece');
+					$('#' + capturedPiece.id).remove()
 				}
-				old_location.appendTo($('#S' + newLocation[1][1] + newLocation[1][2]));
-				old_location.attr('id', old_location[0].id[0] + newLocation[1][1] + newLocation[1][2]);
+				if (old_location !== undefined) {
+					old_location.appendTo($('#S' + newLocation[1][1] + newLocation[1][2]));
+					old_location.attr('id', old_location[0].id[0] + newLocation[1][1] + newLocation[1][2]);
+				}
+				else {
+					console.log('ERROR')
+				}
 			});
 
 			socket.current.off('update-FEN').on('update-FEN', (newLocation, newTurn) => {

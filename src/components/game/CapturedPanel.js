@@ -45,7 +45,6 @@ export default function CapturedPanel(props) {
 		    		<div className={classes['captured-bg']}>{all_pieces}</div>
 		    	</Card>
 		    </CapturedPieces.Provider>
-		    <div id='fuck' />
         </div>
 	);
 }

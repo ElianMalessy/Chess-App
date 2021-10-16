@@ -6,7 +6,7 @@ const io = require('socket.io')(http);
 const users = [];
 const games = Array(100);
 for (let i = 0; i < 100; i++) {
-	games[i] = { playerCount: 0, players: [{ id: 0, color: 0, gameID: 0 }, { id: 0, color: 0, gameID: 0 }] };
+	games[i] = { playerCount: 0, players: [{ id: 0, gameID: 0 }, { id: 0, gameID: 0 }] };
 }
 class Player {
 	constructor(id, gameID) {
@@ -21,7 +21,7 @@ io.on('connection', function(socket) {
 	users.push(socket.id);
 	socket.on('loadIn', function(gameID) {
 		socket.join(gameID);
-		socket.emit('showing-players', games[gameID]);
+		io.to(gameID).emit('showing-players', games[gameID]);
 	});
 
 	socket.on('register', function(id, gameID) {
