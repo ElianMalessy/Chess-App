@@ -9,9 +9,8 @@ for (let i = 0; i < 100; i++) {
 	games[i] = { playerCount: 0, players: [{ id: 0, color: 0, gameID: 0 }, { id: 0, color: 0, gameID: 0 }] };
 }
 class Player {
-	constructor(id, color, gameID) {
+	constructor(id, gameID) {
 		this.id = id;
-		this.color = color;
 		this.gameID = gameID;
 	}
 }
@@ -25,7 +24,7 @@ io.on('connection', function(socket) {
 		socket.emit('showing-players', games[gameID]);
 	});
 
-	socket.on('register', function(id, color, gameID) {
+	socket.on('register', function(id, gameID) {
 		if (id === null) return;
 
 		var found = games.find((gameObj) => gameObj.players[0].id === id || gameObj.players[1].id === id);
@@ -33,16 +32,14 @@ io.on('connection', function(socket) {
 		else if (found !== undefined && found.players[1].id === id) found = found.players[1];
 
 		if (!found) {
-			player = new Player(id, color, gameID);
+			player = new Player(id, gameID);
 			if (games[gameID].playerCount < 2) {
 				if (games[gameID].players[0].id === 0) {
 					games[gameID].players[0].id = player.id;
-					games[gameID].players[0].color = player.color;
 					games[gameID].players[0].gameID = player.gameID;
 				}
 				else {
 					games[gameID].players[1].id = player.id;
-					games[gameID].players[1].color = player.color;
 					games[gameID].players[1].gameID = player.gameID;
 				}
 				games[gameID].playerCount++;

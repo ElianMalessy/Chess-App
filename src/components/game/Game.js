@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef, createContext, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, createContext } from 'react';
+import classes from './Board.module.css';
 import { useLocation } from 'react-router-dom';
 import { BoardMemo } from './Board';
 import $ from 'jquery';
@@ -9,7 +10,7 @@ import { ref, update, set, get } from '@firebase/database';
 //import { useAuth } from '../../contexts/AuthContext';
 
 export const PlayerContext = createContext();
-export const TurnContext = createContext({ col: 'white', setCol: () => {} });
+export const TurnContext = createContext();
 export const SocketContext = createContext();
 
 export default function Game(props) {
@@ -54,7 +55,6 @@ export default function Game(props) {
 	);
 	let path = props.location.pathname;
 	const gameID = useRef(path.substring(path.lastIndexOf('/') + 1));
-	const temp_playerColor = useRef(null);
 
 	//const { currentUser } = useAuth();
 	const currentUserID = useRef(useLocation().state.detail);
@@ -89,20 +89,19 @@ export default function Game(props) {
 		(FEN) => {
 			// switching from b in FEN to w immediately after a white move, in both local storage and in firebase
 			for (let i = FEN.length - 1; i >= 0; i--) {
-				if (FEN[i] === turn[0]) break;
-				if (FEN[i] === 'w' && turn !== 'white') {
+				if (FEN[i] === 'w') {
 					setTurn('white');
 					setUpTurnChange.current = true;
 					break;
 				}
-				else if (FEN[i] === 'b' && turn !== 'black') {
+				else if (FEN[i] === 'b') {
 					setTurn('black');
 					setUpTurnChange.current = true;
 					break;
 				}
 			}
 		},
-		[turn]
+		[]
 	);
 	const getFEN = useCallback(
 		async (gameID) => {
@@ -139,31 +138,22 @@ export default function Game(props) {
 
 	useEffect(() => {
 		socket.current.emit('loadIn', gameID.current);
-		socket.current.emit('register', currentUserID.current, temp_playerColor.current, gameID.current);
+		socket.current.emit('register', currentUserID.current, gameID.current);
 	}, []);
 	useEffect(
 		() => {
 			socket.current.off('showing-players').on('showing-players', (game) => {
-				let col = localStorage.getItem(currentUserID.current);
-				let found = false;
-				if (col) {
-					temp_playerColor.current = col;
-					found = true;
-					setplayerColor(col);
-				}
-
-				if (found === false) {
+				if (!localStorage.getItem(currentUserID.current)) {
 					if (game.playerCount === 0 || currentUserID.current === game.players[0].id) {
 						setplayerColor('white');
-						temp_playerColor.current = 'white';
 						localStorage.setItem(currentUserID.current, 'white');
 					}
 					else {
 						setplayerColor('black');
-						temp_playerColor.current = 'black';
 						localStorage.setItem(currentUserID.current, 'black');
 					}
 				}
+				
 				socket.current.off('old-user').on('old-user', () => {
 					console.log('old-user');
 					fixStuffOnLoad(true);
@@ -276,7 +266,6 @@ export default function Game(props) {
 					FEN: temp_FEN
 				});
 				fixStuffOnLoad(false);
-
 			});
 		},
 		[fixStuffOnLoad, turn]
@@ -289,15 +278,13 @@ export default function Game(props) {
 		[playerColor]
 	);
 	return (
-		<div style={{ height: '100vh', display: 'grid', placeContent: 'center', backgroundColor: '#3b3b3b' }} id='page'>
-			<div style={{color: 'white', fontSize: 20}}>
-				turn: {turn}
-			</div>
+		<div className={classes['mainPage']} id='page'>
+			<div style={{ color: turn, fontSize: 20 }}>Turn: {turn}</div>
 			<PlayerContext.Provider value={player}>
 				<CapturedPanel>
 					<TurnContext.Provider value={turnValue}>
 						<SocketContext.Provider value={socketState}>
-							<BoardMemo />
+							<BoardMemo currentUser={currentUserID.current} />
 						</SocketContext.Provider>
 					</TurnContext.Provider>
 				</CapturedPanel>

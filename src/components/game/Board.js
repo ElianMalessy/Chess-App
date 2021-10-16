@@ -3,17 +3,26 @@ import classes from './Board.module.css';
 import { PieceMemo } from './Piece';
 import { PlayerContext } from './Game';
 
-function Board() {
+function Board({ currentUser }) {
 	const FEN = useRef(localStorage.getItem('FEN'));
 	if (!FEN.current) FEN.current = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
 
 	const [board, setBoard] = useState([]);
 	const boardFiller = useRef([]);
-	const { playerColor } = useContext(PlayerContext);
-	// goes backwards in FEN.current
 
+	const color = useRef(null);
+	const { playerColor } = useContext(PlayerContext);
+	let temp_color = localStorage.getItem(currentUser);
+	if (temp_color) color.current = temp_color;
+	else color.current = playerColor;
+
+	const first_render = useRef(false);
 	useEffect(
 		() => {
+			if (!first_render.current) first_render.current = true;
+			else if (first_render.current && temp_color) return;
+
+			console.log('board-render');
 			let emptyBoard = [];
 			boardFiller.current = emptyBoard;
 			setBoard(emptyBoard);
@@ -26,7 +35,9 @@ function Board() {
 				}
 				index--;
 			}
-			if (playerColor === 'black') {
+
+			// goes backwards in FEN.
+			if (color.current === 'black') {
 				for (let i = index, row = 1, column = 0; i >= 0; i--, column++) {
 					if (FEN.current[i] === ' ') break;
 					if (FEN.current[i] === '/') {

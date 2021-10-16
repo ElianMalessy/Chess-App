@@ -11,7 +11,7 @@ export default function CapturedPanel(props) {
 	const value = { piece, setPiece };
 
 	const pieceMemo = useMemo(
-		() => <div id={'end' + num} className={classes['captured']} style={{ position: 'relative' }} key={num} />,
+		() => <div id={'end' + num} className={classes['captured']} key={num} />,
 		[num]
 	);
 	const dereferenceObjPieces = pieceMemo;
