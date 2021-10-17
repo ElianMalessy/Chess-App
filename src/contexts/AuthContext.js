@@ -1,8 +1,15 @@
-import React, { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, createContext } from 'react';
 import { auth } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import {
+	createUserWithEmailAndPassword,
+	signInWithEmailAndPassword,
+	signOut,
+	onAuthStateChanged,
+	signInAnonymously,
+	sendPasswordResetEmail
+} from 'firebase/auth';
 
-const AuthContext = React.createContext();
+const AuthContext = createContext();
 
 export function useAuth() {
 	return useContext(AuthContext);
@@ -15,9 +22,7 @@ export function AuthProvider({ children }) {
 	function signup(email, password) {
 		return createUserWithEmailAndPassword(auth, email, password);
 	}
-	function anonSignup() {
-		return signInAnonymously(auth)
-	}
+
 	function login(email, password) {
 		return signInWithEmailAndPassword(auth, email, password);
 	}
@@ -25,20 +30,41 @@ export function AuthProvider({ children }) {
 	function logout() {
 		return signOut(auth);
 	}
+
+	function resetPassword(email) {
+		return sendPasswordResetEmail(auth, email);
+	}
+
+	function anonSignup() {
+		return signInAnonymously(auth);
+	}
+	function updateEmail(email) {
+		return currentUser.updateEmail(auth, email);
+	}
+
+	function updatePassword(password) {
+		return currentUser.updatePassword(auth, password);
+	}
+
 	useEffect(() => {
-		const subscriber = onAuthStateChanged(auth, (user) => {
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
 			setCurrentUser(user);
 			setLoading(false);
 		});
-		return subscriber;
+
+		return unsubscribe;
 	}, []);
 
 	const value = {
 		currentUser,
 		login,
 		signup,
+		logout,
 		anonSignup,
-		logout
+		resetPassword,
+		updateEmail,
+		updatePassword
 	};
+
 	return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 }

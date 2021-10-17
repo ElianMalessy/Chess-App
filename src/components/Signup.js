@@ -67,7 +67,9 @@ export default function Signup() {
 					</Card.Body>
 				</Card>
 				<div className='w-100 text-center mt-2'>
-					<Button onClick={handleGuest} variant='link'>Play as guest</Button>
+					<Button onClick={handleGuest} variant='link'>
+						Play as guest
+					</Button>
 				</div>
 				<div className='w-100 text-center mt-2'>
 					Already have an account? <Link to='/Login'>Log In</Link>

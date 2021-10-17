@@ -12,6 +12,7 @@ import { ref, update, set, get } from '@firebase/database';
 export const PlayerContext = createContext();
 export const TurnContext = createContext();
 export const SocketContext = createContext();
+export const FenContext = createContext();
 
 export default function Game(props) {
 	// default FEN notation: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
@@ -198,6 +199,7 @@ export default function Game(props) {
 		[fixStuffOnLoad]
 	);
 
+	const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
 	useEffect(
 		() => {
 			socket.current.off('new-location').on('new-location', (newLocation) => {
@@ -207,14 +209,14 @@ export default function Game(props) {
 				let capturedPiece = $('#' + destination.id)[0].firstChild;
 				if (capturedPiece) {
 					$('#' + capturedPiece.id).css('opacity', 0);
-					$('#' + capturedPiece.id).remove()
+					$('#' + capturedPiece.id).remove();
 				}
 				if (old_location !== undefined) {
 					old_location.appendTo($('#S' + newLocation[1][1] + newLocation[1][2]));
 					old_location.attr('id', old_location[0].id[0] + newLocation[1][1] + newLocation[1][2]);
 				}
 				else {
-					console.log('ERROR')
+					console.log('ERROR');
 				}
 			});
 
@@ -267,12 +269,12 @@ export default function Game(props) {
 				}
 				else temp_FEN += ' -';
 
-				console.log(temp_FEN);
 				localStorage.setItem('FEN', temp_FEN);
 				update(ref(database, 'Games/' + gameID.current), {
 					FEN: temp_FEN
 				});
 				fixStuffOnLoad(false);
+				setFEN(temp_FEN);
 			});
 		},
 		[fixStuffOnLoad, turn]
@@ -284,6 +286,12 @@ export default function Game(props) {
 		},
 		[playerColor]
 	);
+	const FENMemo = useMemo(
+		() => {
+			return { FEN: FEN[FEN.length - 2] + FEN[FEN.length - 1] };
+		},
+		[FEN]
+	);
 	return (
 		<div className={classes['mainPage']} id='page'>
 			<div style={{ color: turn, fontSize: 20 }}>Turn: {turn}</div>
@@ -291,7 +299,9 @@ export default function Game(props) {
 				<CapturedPanel>
 					<TurnContext.Provider value={turnValue}>
 						<SocketContext.Provider value={socketState}>
-							<BoardMemo currentUser={currentUserID.current} />
+							<FenContext.Provider value={FENMemo}>
+								<BoardMemo currentUser={currentUserID.current} />
+							</FenContext.Provider>
 						</SocketContext.Provider>
 					</TurnContext.Provider>
 				</CapturedPanel>
