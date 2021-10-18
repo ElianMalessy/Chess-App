@@ -18,7 +18,7 @@ export default function Dashboard() {
       await logout();
       history.push('/Login');
     } catch (error) {
-		console.log(error)
+      console.log(error);
       setError('Failed to log out');
     }
   }
@@ -88,26 +88,17 @@ export default function Dashboard() {
                   REAL Play a Game With Your Friends
                 </Button>
               </div>
-              <div className='mt-2'>
+              <div className='mt-2 d-flex align-items-center justify-content-center'>
                 <input
                   id='playWithFriend'
                   spellCheck='false'
                   readOnly='readonly'
                   value={'localhost:3000/Game/' + randomURL}
+                  style={{ position: 'absolute'}}
                 />
                 <button
-                  className='btn btn-success'
+                  className={'btn btn-success ' + classes['roundedCirc']}
                   data-rel='playWithFriend'
-                  style={{
-                    width: '50px',
-                    height: '50px',
-                    padding: '8px 12px',
-                    borderRadius: '35px',
-                    textAlign: 'center',
-                    fontSize: '24px',
-                    lineHeight: 1.33,
-                    marginLeft: '5px'
-                  }}
                   onClick={() => {
                     // needa get a diff userID than passing it from useLocation
                     navigator.clipboard.writeText('localhost:3000/Game/' + randomURL);

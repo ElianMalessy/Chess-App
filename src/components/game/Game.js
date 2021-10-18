@@ -282,14 +282,11 @@ export default function Game(props) {
 
           let destination = $('[id*=' + newLocation[1][1] + newLocation[1][2] + ']')[0];
           let capturedPiece = $('#' + destination.id)[0].firstChild;
-          if (capturedPiece) {
-            $('#' + capturedPiece.id).css('opacity', 0);
-            $('#' + capturedPiece.id).remove();
-          }
+          if (capturedPiece) $('#' + capturedPiece.id).remove();
 
           old_location.appendTo($('#S' + newLocation[1][1] + newLocation[1][2]));
           old_location.attr('id', old_location[0].id[0] + newLocation[1][1] + newLocation[1][2]);
-          
+
           if (playerColor === 'white') setTurn('white');
           else setTurn('black');
         }
@@ -305,12 +302,7 @@ export default function Game(props) {
     }
   });
 
-  const player = useMemo(
-    () => {
-      return { playerColor };
-    },
-    [playerColor]
-  );
+ 
   const turnValue = useMemo(
     () => {
       return { turn, setTurn };
@@ -329,7 +321,7 @@ export default function Game(props) {
       <div style={{ color: turn[0].length === 1 ? turn : turn[0], fontSize: 20 }}>
         Turn: {turn[0].length === 1 ? turn : turn[0]}
       </div>
-      <PlayerContext.Provider value={player}>
+      <PlayerContext.Provider value={playerColor}>
         <CapturedPanel>
           <TurnContext.Provider value={turnValue}>
             <FenContext.Provider value={FENMemo}>

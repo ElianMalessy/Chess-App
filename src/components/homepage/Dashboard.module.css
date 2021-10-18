@@ -1,15 +1,24 @@
-html{
-    padding: 0;
-    margin: 0;
+html {
+  padding: 0;
+  margin: 0;
 }
-.background_div{
-    background-color: rgb(228, 203, 179);
-    position: absolute;
-    
+.background_div {
+  background-color: rgb(228, 203, 179);
+  position: absolute;
 }
-*{
-    -ms-overflow-style: none;
+.roundedCirc {
+  margin-left: 14.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0rem 0.65rem;
+  text-align: center;
+  border-radius: 2rem;
+  font-size: 1.35rem;
+  line-height: 1.29;
+}
+* {
+  -ms-overflow-style: none;
 }
 ::-webkit-scrollbar {
-    display: none;
+  display: none;
 }

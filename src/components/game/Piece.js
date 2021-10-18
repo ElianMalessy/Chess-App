@@ -101,7 +101,6 @@ export default memo(function PieceMemo({ color, position }) {
     if (moved) {
       // when this player has made a move, broadcast that to the other player
       turn === 'white' ? setTurn(['black', ...endLocation]) : setTurn(['white', ...endLocation]);
-      //socket.emit('turn-location', endLocation, gameID.current, turn === 'white' ? 'black' : 'white');
     }
   }
   function isCheck(kingPos) {
