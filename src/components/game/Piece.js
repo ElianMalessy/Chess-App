@@ -1,16 +1,15 @@
 import { useContext, memo } from 'react';
 import classes from './Board.module.css';
 import classNames from 'classnames';
-import { TurnContext, PlayerContext, SocketContext, FenContext } from './Game';
+import { TurnContext, PlayerContext } from './Game';
 import { CapturedPieces } from './CapturedPanel';
 import $ from 'jquery';
 
 export default memo(function PieceMemo({ color, position }) {
-  const { turn } = useContext(TurnContext);
+  const { turn, setTurn } = useContext(TurnContext);
   const { setPiece } = useContext(CapturedPieces);
-  const { playerColor, gameID } = useContext(PlayerContext);
-  const socket = useContext(SocketContext);
-  const { FEN } = useContext(FenContext);
+  const { playerColor } = useContext(PlayerContext);
+  //const { FEN } = useContext(FenContext);
 
   function drag(me) {
     const move = $(me.target);
@@ -101,7 +100,8 @@ export default memo(function PieceMemo({ color, position }) {
     moving_piece.data('lastTransform', { dx: 0, dy: 0 });
     if (moved) {
       // when this player has made a move, broadcast that to the other player
-      socket.emit('turn-location', endLocation, gameID.current, turn === 'white' ? 'black' : 'white');
+      turn === 'white' ? setTurn(['black', ...endLocation]) : setTurn(['white', ...endLocation]);
+      //socket.emit('turn-location', endLocation, gameID.current, turn === 'white' ? 'black' : 'white');
     }
   }
   function isCheck(kingPos) {
@@ -234,22 +234,22 @@ export default memo(function PieceMemo({ color, position }) {
       let pawnColor = pawn.attr('color');
 
       if (Math.abs(destLetter - origLetter) === 1) {
-        let enPassent_sqaure;
-        FEN[1] === '-' ? (enPassent_sqaure = null) : (enPassent_sqaure = FEN);
+        //let enPassent_sqaure;
+        //FEN[1] === '-' ? (enPassent_sqaure = null) : (enPassent_sqaure = FEN);
         let attemptedEnPassent_sqaure;
         if ($('#' + destination).children().length > 0 && Math.abs(destination[2] - origin[2]) === 1) {
           return true;
         }
         else if (pawnColor === 'white') {
           attemptedEnPassent_sqaure = $('#S' + destination[1] + (parseInt(destination[2]) - 1));
-          console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
+          //console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
         }
         else if (pawnColor === 'black') {
           attemptedEnPassent_sqaure = $('#S' + destination[1] + (parseInt(destination[2]) + 1));
-          console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
+          //console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
         }
         if (attemptedEnPassent_sqaure) {
-          console.log(attemptedEnPassent_sqaure.children());
+          //console.log(attemptedEnPassent_sqaure.children());
         }
       }
       else if (destLetter - origLetter === 0 && pawnColor === 'white') {
