@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback, createContext } from 'react';
 import classes from './Board.module.css';
-import { useLocation } from 'react-router-dom';
 import { BoardMemo } from './Board';
 import $ from 'jquery';
 import CapturedPanel from './CapturedPanel';
 import { database } from '../../firebase';
 import { ref, update, set, get, onValue, off } from '@firebase/database';
-//import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const PlayerContext = createContext();
 export const TurnContext = createContext({ col: ['white', 'pe2', 'pe4'], setCol: () => {} });
@@ -42,8 +41,18 @@ export default function Game(props) {
   let path = props.location.pathname;
   const gameID = useRef(path.substring(path.lastIndexOf('/') + 1));
 
-  //const { currentUser } = useAuth();
-  const currentUserID = useRef(useLocation().state.detail);
+  function getWhiteEmail() {
+    for (var i = 0, len = localStorage.length; i < len; i++) {
+      let key = localStorage.key(i);
+      if (localStorage[key] === 'white') {
+        return localStorage.key(i);
+      }
+    }
+  }
+  const { currentUser } = useAuth();
+  const currentUserID = useRef();
+  if (currentUser) currentUserID.current = currentUser;
+  else currentUserID.current = getWhiteEmail();
 
   const setUpTurnChange = useRef(false);
   const fixBoardArray = useCallback((FEN) => {
@@ -302,7 +311,6 @@ export default function Game(props) {
     }
   });
 
- 
   const turnValue = useMemo(
     () => {
       return { turn, setTurn };
