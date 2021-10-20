@@ -1,8 +1,9 @@
 import { useState, Fragment, useRef, useEffect } from 'react';
-import { Alert, Image, Container, Nav, Button } from 'react-bootstrap';
+import { Alert, Image, Container, Nav, Button, Card, Form, Row } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
 import classes from './Dashboard.module.css';
+import { getStorage, ref, getDownloadURL, uploadBytes } from 'firebase/storage';
 import 'font-awesome/css/font-awesome.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -22,23 +23,21 @@ export default function Dashboard() {
       setError('Failed to log out');
     }
   }
-  const [profilePic, setProfilePic] = useState();
-  const [hidden, setHidden] = useState(true);
-  function changeProfilePic() {}
 
-  /*
-	useEffect(
-		() => {
-			setTimeout(() => {
-				if (currentUser === null) {
-					console.log(currentUser);
-					history.push('/Login');
-				}
-			}, 2000);
-		},
-		[currentUser, history]
-	);
-	*/
+  const [profilePic, setProfilePic] = useState(
+    'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg'
+  );
+  const storage = getStorage();
+
+  const [hidden, setHidden] = useState(true);
+  const [inputField, setInputField] = useState(false);
+  function changeProfilePic(file) {
+    uploadBytes(ref(storage, `profile-pictures/${currentUser}.jpg`), file).then((snapshot) => {
+      console.log('Uploaded a blob or file!');
+    });
+  }
+
+  const imageRef = useRef();
   const clickRef = useRef();
   useEffect(
     () => {
@@ -46,13 +45,16 @@ export default function Dashboard() {
         if (clickRef.current && !clickRef.current.contains(event.target)) {
           setHidden(true);
         }
+        if (imageRef.current && !imageRef.current.contains(event.target)) {
+          setInputField(false);
+        }
       }
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     },
-    [clickRef]
+    [clickRef, imageRef]
   );
 
   return (
@@ -73,12 +75,7 @@ export default function Dashboard() {
         </ul>
 
         <Nav className={classes.profileNav}>
-          <Image
-            src='https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg'
-            alt='profile-picture'
-            onClick={changeProfilePic}
-            roundedCircle
-          />
+          <Image src={profilePic} alt='profile-picture' onClick={() => setInputField(true)} roundedCircle />
           <Button
             className={classes.dropDownButton}
             onClick={() => (hidden === true ? setHidden(false) : setHidden(true))}
@@ -110,12 +107,33 @@ export default function Dashboard() {
           </div>
         </Nav>
       </header>
-      <Container className={`d-flex align-items-center justify-content-center ${classes.bg}`}>
+      <Container className={`d-flex justify-content-center ${classes.bg}`} fluid>
         {error && <Alert variant='danger'>{error}</Alert>}
+        {inputField === true ? (
+          <Row className='position-absolute mt-5'>
+          <Card className={classes.imageCard} ref={imageRef}>
+            <Card.Body>
+              <h2 className='text-center mb-4'>Change Profile Picture</h2>
+              <Form onSubmit={changeProfilePic}>
+                <Form.Group id='image'>
+                  <Form.Label>Image URL</Form.Label>
+                  <Form.Control type='url' required />
+                </Form.Group>
+              </Form>
+            </Card.Body>
+          </Card>
+          </Row>
+        ) : null}
+        <div style={{ color: 'white', textAlign: 'center', fontSize: '2.25rem' }}>
+          <Row style={{ maxWidth: '50rem' }}>
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+            dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
+            ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat
+            nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
+            anim id est laborum."
+          </Row>
 
-        <div className='w-100 text-center mt-2'>
-          <div />
-          <div className='mt-2 d-flex align-items-center justify-content-center' style={{transform: 'translate(0, 10rem)'}}>
+          <Row className='justify-content-center mt-5' style={{ height: '5rem' }}>
             <input
               id='playWithFriend'
               spellCheck='false'
@@ -124,7 +142,7 @@ export default function Dashboard() {
               className={classes.linkInput}
             />
             <button
-              className={`btn btn-primary ${classes['roundedCirc']}`}
+              className={`btn btn-primary ${classes.roundedCirc}`}
               onClick={() => {
                 // needa get a diff userID than passing it from useLocation
                 navigator.clipboard.writeText('localhost:3000/Game/' + randomURL.current);
@@ -133,8 +151,7 @@ export default function Dashboard() {
             >
               <i className='fa fa-link' />
             </button>
-          </div>
-          <div />
+          </Row>
         </div>
       </Container>
     </Fragment>
