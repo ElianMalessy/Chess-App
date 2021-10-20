@@ -51,7 +51,7 @@ export default function Game(props) {
   }
   const { currentUser } = useAuth();
   const currentUserID = useRef();
-  if (currentUser) currentUserID.current = currentUser;
+  if (currentUser) currentUserID.current = currentUser.email;
   else currentUserID.current = getWhiteEmail();
 
   const setUpTurnChange = useRef(false);

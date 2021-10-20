@@ -8,7 +8,7 @@ import $ from 'jquery';
 export default memo(function PieceMemo({ color, position }) {
   const { turn, setTurn } = useContext(TurnContext);
   const { setPiece } = useContext(CapturedPieces);
-  const { playerColor } = useContext(PlayerContext);
+  const playerColor = useContext(PlayerContext);
   //const { FEN } = useContext(FenContext);
 
   function drag(me) {

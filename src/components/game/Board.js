@@ -11,7 +11,7 @@ function Board({ currentUser }) {
   const boardFiller = useRef([]);
 
   const pColor = useRef(null);
-  const { playerColor } = useContext(PlayerContext);
+  const playerColor = useContext(PlayerContext);
   let temp_color = localStorage.getItem(currentUser);
   if (temp_color) pColor.current = temp_color;
   else pColor.current = playerColor;

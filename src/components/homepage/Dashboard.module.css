@@ -8,14 +8,11 @@ html {
 }
 
 .roundedCirc {
-  margin-left: 14.75rem;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0rem 0.65rem;
-  text-align: center;
-  border-radius: 2rem;
-  font-size: 1.35rem;
-  line-height: 1.29;
+  margin-left: 21rem;
+  height: 4rem;
+  width: 4rem;
+  font-size: 2rem;
+  border-radius: 50%;
 }
 
 .header {
@@ -55,7 +52,6 @@ html {
 }
 
 .headerLink {
-  text-decoration: none;
   color: #a8a8a8;
   font-size: 2.0rem;
 }
@@ -68,12 +64,42 @@ html {
   background-size: cover;
   background-color: #3b3b3b;
 }
-
-.navButton {
-  align-self: flex-end;
-  margin-top: 3.85rem;
-  margin-left: -0.5rem;
+.profileNav {
+  transform: translate(4rem);
 }
+.dropDownButton {
+  background-color: inherit;
+  transform: translate(1rem);
+  align-self: center;
+  height: 2.5rem;
+}
+
+a {
+  color: rgb(31, 31, 31);
+  text-decoration: none;
+}
+a:hover {
+  color: rgb(255, 255, 255);
+}
+.dropDownMenu {
+  background-color: #77002e;
+
+  position: absolute;
+  transform: translate(5.5rem, 4rem);
+  height: 13rem;
+  width: 13.25rem;
+  font-size: 1.25rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+  text-align: left;
+  border: 0.15rem solid rgb(32, 32, 32);
+  border-radius: 0.5rem;
+}
+.dropdown-item {
+  text-align: left;
+  padding: 0.25rem 0.25rem 0.25rem 0.25rem;
+  display: block;
+}
+
 .header img {
   height: 4.5rem;
   width: 4.5rem;
@@ -82,5 +108,9 @@ html {
   filter: brightness(50%);
   cursor: pointer;
 }
-
-
+.linkInput {
+  position: absolute;
+  height: 3.25rem;
+  width: 15rem;
+  font-size: 1.25rem;
+}
