@@ -1,9 +1,10 @@
-import { useState, Fragment, useRef, useEffect } from 'react';
-import { Alert, Image, Container, Nav, Button, Card, Form, Row } from 'react-bootstrap';
+import { useState, useRef, useEffect, Fragment } from 'react';
+import { Alert, Image, Container, Nav, Button, Row } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
 import classes from './Dashboard.module.css';
 import { getStorage, ref, getDownloadURL, uploadBytes } from 'firebase/storage';
+import Modal from './Modal/Modal';
 import 'font-awesome/css/font-awesome.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -24,8 +25,9 @@ export default function Dashboard() {
     }
   }
 
+  // 'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg --magnus carlsen pfp'
   const [profilePic, setProfilePic] = useState(
-    'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg'
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png'
   );
   const storage = getStorage();
 
@@ -33,11 +35,31 @@ export default function Dashboard() {
   const [inputField, setInputField] = useState(false);
   function changeProfilePic(file) {
     uploadBytes(ref(storage, `profile-pictures/${currentUser}.jpg`), file).then((snapshot) => {
-      console.log('Uploaded a blob or file!');
+      console.log('Uploaded a blob or file!', snapshot);
     });
   }
+  useEffect(
+    () => {
+      const storage = getStorage();
+      getDownloadURL(ref(storage, `profile-pictures/${currentUser}.jpg`))
+        .then((url) => {
+          const xhr = new XMLHttpRequest();
+          xhr.responseType = 'blob';
+          xhr.onload = (event) => {
+            const blob = xhr.response;
+            console.log(blob);
+          };
+          xhr.open('GET', url);
+          xhr.send();
 
-  const imageRef = useRef();
+          setProfilePic(url);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+    [currentUser]
+  );
   const clickRef = useRef();
   useEffect(
     () => {
@@ -45,26 +67,39 @@ export default function Dashboard() {
         if (clickRef.current && !clickRef.current.contains(event.target)) {
           setHidden(true);
         }
-        if (imageRef.current && !imageRef.current.contains(event.target)) {
-          setInputField(false);
-        }
       }
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     },
-    [clickRef, imageRef]
+    [clickRef]
   );
 
   return (
     <Fragment>
+      <Modal
+        changeProfilePic={changeProfilePic}
+        setOpen={setInputField}
+        isOpen={inputField}
+        profilePic={profilePic}
+        setProfilePic={setProfilePic}
+      />
       <header className={classes.header}>
-        <div className={classes.logo}>WeChess</div>
+        <div className={classes.logo}>
+          <Image
+            src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUZZloLNz2F11mD77ey5TLZezGlFueOWuFqw&usqp=CAU'
+            alt='logo'
+            className={classes.logoImage}
+            onClick={() => history.push('/development')}
+            roundedCircle
+          />
+          WeChess
+        </div>
         <ul>
           <li>
             <Link to='/Game/1' className={`h-50 ${classes.headerLink}`}>
-              TESTING
+              Testing
             </Link>
           </li>
           <li>
@@ -75,12 +110,17 @@ export default function Dashboard() {
         </ul>
 
         <Nav className={classes.profileNav}>
-          <Image src={profilePic} alt='profile-picture' onClick={() => setInputField(true)} roundedCircle />
+          <Image
+            src={profilePic}
+            alt='profile-picture'
+            onClick={() => setInputField(true)}
+            className={classes.profilePic}
+          />
           <Button
             className={classes.dropDownButton}
             onClick={() => (hidden === true ? setHidden(false) : setHidden(true))}
             ref={clickRef}
-            style={{ backgroundColor: 'inherit', boxShadow: 'none' }}
+            style={{ boxShadow: 'none' }}
           >
             <pre>
               <strong>Email: </strong>
@@ -109,21 +149,7 @@ export default function Dashboard() {
       </header>
       <Container className={`d-flex justify-content-center ${classes.bg}`} fluid>
         {error && <Alert variant='danger'>{error}</Alert>}
-        {inputField === true ? (
-          <Row className='position-absolute mt-5'>
-          <Card className={classes.imageCard} ref={imageRef}>
-            <Card.Body>
-              <h2 className='text-center mb-4'>Change Profile Picture</h2>
-              <Form onSubmit={changeProfilePic}>
-                <Form.Group id='image'>
-                  <Form.Label>Image URL</Form.Label>
-                  <Form.Control type='url' required />
-                </Form.Group>
-              </Form>
-            </Card.Body>
-          </Card>
-          </Row>
-        ) : null}
+
         <div style={{ color: 'white', textAlign: 'center', fontSize: '2.25rem' }}>
           <Row style={{ maxWidth: '50rem' }}>
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et

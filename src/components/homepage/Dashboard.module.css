@@ -1,7 +1,5 @@
-html {
-  padding: 0;
-  margin: 0;
-}
+@import-normalize;
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&display=swap');
 
 ::-webkit-scrollbar {
   display: none;
@@ -13,15 +11,15 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #77002e;
+  margin: 0;
+  background-color: hsl(337, 96%, 27%);
   padding: 0 10%;
-  font-size: 1.5rem;
 }
 
 .logo {
-  font-size: 2rem;
+  font-size: 3rem;
   color: white;
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .header strong {
@@ -44,9 +42,12 @@ html {
 }
 
 .headerLink {
-  color: #a8a8a8;
-  font-size: 2.0rem;
+  color: #000000;
+  font-size: 2.5rem;
+  font-weight: 600;
+  font-family: 'Libre Baskerville', serif;
 }
+
 .headerLink:hover {
   color: white;
 }
@@ -54,7 +55,7 @@ html {
   min-height: 100vh;
   min-width: 100vw;
   background-size: cover;
-  background-color: #3b3b3b;
+  background-color: hsl(0, 0%, 6%);
 }
 .profileNav {
   transform: translate(4rem);
@@ -64,17 +65,17 @@ html {
   transform: translate(1rem);
   align-self: center;
   height: 2.5rem;
+  box-shadow: none;
 }
 
 a {
-  color: rgb(31, 31, 31);
   text-decoration: none;
 }
 a:hover {
   color: rgb(255, 255, 255);
 }
 .dropDownMenu {
-  background-color: #77002e;
+  background-color: hsl(0, 0%, 6%);
 
   position: absolute;
   transform: translate(5.5rem, 4rem);
@@ -90,15 +91,26 @@ a:hover {
   text-align: left;
   padding: 0.25rem 0.25rem 0.25rem 0.25rem;
   display: block;
+  color: rgb(78, 78, 78);
 }
 
-.header img {
+.profilePic {
   height: 4.5rem;
   width: 4.5rem;
 }
+.logoImage {
+  height: 5rem;
+  width: 5rem;
+  margin-left: -6rem;
+  margin-right: 0.5rem;
+  mix-blend-mode: multiply;
+}
+
 .header img:hover {
-  filter: brightness(50%);
   cursor: pointer;
+}
+.profilePic:hover {
+  filter: brightness(50%);
 }
 .linkInput {
   height: 75%;
@@ -113,9 +125,4 @@ a:hover {
   border-radius: 50%;
   transform: translate(15rem, 0);
   position: absolute;
-}
-.imageCard {
-  background-color: #1f1f1f;
-  color: white;
-  max-height: 15rem;
 }
