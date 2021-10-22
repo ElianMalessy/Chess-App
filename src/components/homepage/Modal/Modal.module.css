@@ -2,7 +2,8 @@
 @import url(https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap);
 
 .imageCard {
-  max-height: 25rem;
+  height: 22rem;
+
   color: white;
   border-radius: 0.4rem;
 }
@@ -24,8 +25,8 @@
 :root {
   --dark: #101315;
   --light: #eeeeee;
-  --gradient: linear-gradient(10deg, hsl(337, 78%, 42%),hsl(337, 100%, 17%));
-  --gradient2: linear-gradient(15deg, #04ea00, #00d17d);
+  --gradient: linear-gradient(10deg, hsl(337, 78%, 42%), hsl(337, 100%, 17%));
+  --gradient2: linear-gradient(15deg, hsl(337, 94%, 26%), hsl(337, 96%, 11%));
   --gradient3: linear-gradient(15deg, #b648ff, #ef5dff);
   font-size: 1rem;
 }
@@ -44,8 +45,8 @@
 }
 
 .modal {
-  width: clamp(50%, 700px, 90%);
-  height: min(50%, 300px);
+  width: clamp(50%, 55rem, 90%);
+  height: min(50%, 50rem);
   padding: 0 2rem;
   border-radius: 12px;
   display: flex;
@@ -56,40 +57,38 @@
   background: var(--gradient);
 }
 
-.green-gradient {
-  background: var(--gradient2);
-}
-
-.pink {
-  color: #c273ff;
-}
-
-.gray {
-  color: #666666;
-}
-
-.light-blue {
-  color: #00b7ff;
-}
-
-.modal-button {
+.modal-button,
+.modal-button2 {
   position: relative;
   padding: 0 3rem;
   min-height: 3rem;
   margin-top: 1rem;
-  background: var(--dark);
-  color: var(--light);
   width: auto;
   height: 3rem;
+  font-size: 1.25rem;
+}
+.modal-button,
+.modal-button2,
+.modal-button3 {
+  letter-spacing: 1.25px;
+  font-family: "Montserrat", sans-serif;
   border: none;
   outline: none;
-  -webkit-appearance: none;
-  border-radius: 4px;
+  color: var(--light);
   font-weight: 600;
-  font-size: 1.25rem;
-  letter-spacing: 1.25px;
-  cursor: default;
-  font-family: "Montserrat", sans-serif;
+  border-radius: 4px;
+}
+.modal-button {
+  background: var(--dark);
+}
+
+.modal-button2 {
+  background: var(--gradient2);
+}
+.modal-button3 {
+  font-size: 1rem;
+  background: var(--dark);
+  padding: 0.5rem 1rem;
 }
 
 .save-button {

@@ -1,62 +1,41 @@
-import React from 'react';
 import ReactAvatarEditor from 'react-avatar-editor';
 
-export default class ProfilePic extends React.Component {
-  state = {
-    image: this.props.src,
-    allowZoomOut: false,
-    position: { x: 0.5, y: 0.5 },
-    scale: 1,
-    rotate: 0,
-    borderRadius: 0,
-    preview: null,
-    width: 200,
-    height: 200
-  };
-
-  handleNewImage = (e) => {
-    this.setState({ image: e.target.files[0] });
-  };
-
-  handleScale = (e) => {
+export default function ProfilePic({ tempProfilePic, setTempProfilePic, children }) {
+  const handleScale = (e) => {
     const scale = parseFloat(e.target.value);
-    this.setState({ scale });
+    setTempProfilePic({ ...tempProfilePic, scale: scale });
   };
 
-  handlePositionChange = (position) => {
-    this.setState({ position });
+  const handlePositionChange = (position) => {
+    setTempProfilePic({ ...tempProfilePic, position: position });
   };
 
-  render() {
-    return (
-      <div style={{ position: 'absolute' }}>
-        <div>
-          <ReactAvatarEditor
-            scale={parseFloat(this.state.scale)}
-            width={this.state.width}
-            height={this.state.height}
-            position={this.state.position}
-            onPositionChange={this.handlePositionChange}
-            rotate={parseFloat(this.state.rotate)}
-            borderRadius={this.state.width / (100 / this.state.borderRadius)}
-            image={this.state.image}
-          />
-        </div>
-        <br />
-        New File:
-        <input name='newImage' type='file' onChange={this.handleNewImage} />
-        <br />
+  return (
+    <div style={{ position: 'absolute' }}>
+      <ReactAvatarEditor
+        scale={parseFloat(tempProfilePic.scale)}
+        width={tempProfilePic.width}
+        height={tempProfilePic.height}
+        position={tempProfilePic.position}
+        onPositionChange={handlePositionChange}
+        borderRadius={tempProfilePic.width / 2}
+        image={tempProfilePic.image}
+      />
+      <br />
+      <div className='d-flex align-items-center justify-content-center'>
         Zoom:
         <input
           name='scale'
           type='range'
-          onChange={this.handleScale}
-          min={this.state.allowZoomOut ? '0.1' : '1'}
+          onChange={handleScale}
+          min={'1'}
           max='2'
           step='0.01'
           defaultValue='1'
+          style={{ width: tempProfilePic.width, marginLeft: '0.15rem', marginTop: '0.2rem' }}
         />
       </div>
-    );
-  }
+      {children}
+    </div>
+  );
 }

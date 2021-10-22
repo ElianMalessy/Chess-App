@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, Fragment } from 'react';
+import { useState, useRef, useEffect, Fragment, createContext } from 'react';
 import { Alert, Image, Container, Nav, Button, Row } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
@@ -8,6 +8,7 @@ import Modal from './Modal/Modal';
 import 'font-awesome/css/font-awesome.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+export const ImageContext = createContext({ img: 'src', setImg: () => {} });
 export default function Dashboard() {
   const [error, setError] = useState('');
   const { currentUser, logout } = useAuth();
@@ -26,9 +27,11 @@ export default function Dashboard() {
   }
 
   // 'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg --magnus carlsen pfp'
-  const [profilePic, setProfilePic] = useState(
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png'
-  );
+  const [profilePic, setProfilePic] = useState({
+    image:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png',
+    scale: 1
+  });
   const storage = getStorage();
 
   const [hidden, setHidden] = useState(true);
@@ -78,13 +81,15 @@ export default function Dashboard() {
 
   return (
     <Fragment>
-      <Modal
-        changeProfilePic={changeProfilePic}
-        setOpen={setInputField}
-        isOpen={inputField}
-        profilePic={profilePic}
-        setProfilePic={setProfilePic}
-      />
+      <ImageContext.Provider value={{ profilePic, setProfilePic }}>
+        <Modal
+          changeProfilePic={changeProfilePic}
+          setOpen={setInputField}
+          isOpen={inputField}
+          profilePic={profilePic}
+          setProfilePic={setProfilePic}
+        />
+      </ImageContext.Provider>
       <header className={classes.header}>
         <div className={classes.logo}>
           <Image
@@ -110,12 +115,21 @@ export default function Dashboard() {
         </ul>
 
         <Nav className={classes.profileNav}>
-          <Image
-            src={profilePic}
-            alt='profile-picture'
-            onClick={() => setInputField(true)}
-            className={classes.profilePic}
-          />
+          <div
+            className='d-flex align-items-center justify-content-center'
+            style={{ overflow: 'hidden', height: '4.5rem', width: '4.5rem', borderRadius: '50%' }}
+          >
+            <Image
+              src={profilePic.image}
+              alt='profile-picture'
+              style={{
+                transform: `scale(${profilePic.scale})`
+              }}
+              id='profile-pic'
+              onClick={() => setInputField(true)}
+              className={classes.profilePic}
+            />
+          </div>
           <Button
             className={classes.dropDownButton}
             onClick={() => (hidden === true ? setHidden(false) : setHidden(true))}
