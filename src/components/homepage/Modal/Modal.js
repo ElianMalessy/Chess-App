@@ -78,7 +78,7 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
           >
             <Card className={classes['orange-gradient'] + ' ' + classes['imageCard']}>
               <Card.Body>
-                <ProfilePic tempProfilePic={tempProfilePic} setTempProfilePic={setTempProfilePic}>
+                <ProfilePic tempProfilePic={tempProfilePic}>
                   <Card.Text className='d-flex align-items-center justify-content-center'>
                     <ModalButton
                       onClick={() => {
