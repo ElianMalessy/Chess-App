@@ -3,9 +3,8 @@ import classes from './Modal.module.css';
 import { motion } from 'framer-motion';
 import Backdrop from './Backdrop';
 import ModalContainer from './ModalContainer';
-import { useRef, useContext, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import ProfilePic from './ProfilePic/ProfilePic';
-import { ImageContext } from '../Dashboard';
 
 const dropIn = {
   hidden: {
@@ -27,25 +26,38 @@ const dropIn = {
     opacity: 0
   }
 };
-export default function Modal({ setOpen, changeProfilePic, isOpen }) {
+export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, setProfilePic }) {
   const fileInputRef = useRef();
-  const { profilePic, setProfilePic } = useContext(ImageContext);
   const [tempProfilePic, setTempProfilePic] = useState({
     image: profilePic.image,
     position: { x: 0.5, y: 0.5 },
-    scale: 1,
+    scale: profilePic.scale,
     height: 165,
     width: 165
   });
+  useEffect(
+    () => {
+      if (tempProfilePic.image !== profilePic.image && tempProfilePic.scale !== profilePic.scale)
+        setTempProfilePic({ ...tempProfilePic, image: profilePic.image, scale: profilePic.scale });
+      else if (tempProfilePic.image !== profilePic.image)
+        setTempProfilePic({ ...tempProfilePic, image: profilePic.image });
+      else if (tempProfilePic.scale !== profilePic.scale)
+        setTempProfilePic({ ...tempProfilePic, scale: profilePic.scale });
+    },
+    // eslint-disable-next-line
+    [profilePic, tempProfilePic]
+  );
   function newProfilePicFile(e) {
     var files = e.target.files[0]; // FileList object
     if (files === undefined) return;
     var reader = new FileReader();
 
     // Closure to capture the file information.
-    reader.onload = (function() {
+    reader.onload = (function(file) {
       return function(e) {
         setTempProfilePic({ ...tempProfilePic, image: e.target.result });
+        console.log(tempProfilePic.scale);
+        changeProfilePic(file);
       };
     })(files);
 
@@ -74,7 +86,6 @@ export default function Modal({ setOpen, changeProfilePic, isOpen }) {
                           image: tempProfilePic.image,
                           scale: tempProfilePic.scale
                         });
-                        
                       }}
                       label='Submit'
                       btnClass='modal-button2'
@@ -83,7 +94,7 @@ export default function Modal({ setOpen, changeProfilePic, isOpen }) {
                 </ProfilePic>
 
                 <Card.Title className={`text-center mb-4 ${classes.cardTitle}`}>Change Profile Picture</Card.Title>
-                <Form onSubmit={changeProfilePic} style={{ marginLeft: '14.5rem' }}>
+                <Form style={{ marginLeft: '14.5rem' }}>
                   <Form.Group id='image'>
                     <Form.Label>Image url:</Form.Label>
                     <Form.Control type='url' placeholder='e.g, https://images.chesscomfiles.com/uploads/picture.png' />

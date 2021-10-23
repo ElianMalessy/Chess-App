@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect, Fragment, createContext } from 'react';
+/* eslint-disable default-case */
+import { useState, useRef, useEffect, Fragment, memo } from 'react';
 import { Alert, Image, Container, Nav, Button, Row } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
 import classes from './Dashboard.module.css';
-import { getStorage, ref, getDownloadURL, uploadBytes } from 'firebase/storage';
+import { getStorage, ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import Modal from './Modal/Modal';
 import 'font-awesome/css/font-awesome.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-export const ImageContext = createContext({ img: 'src', setImg: () => {} });
-export default function Dashboard() {
+export default memo(function Dashboard() {
   const [error, setError] = useState('');
   const { currentUser, logout } = useAuth();
   const history = useHistory();
@@ -32,34 +32,64 @@ export default function Dashboard() {
       'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png',
     scale: 1
   });
-  const storage = getStorage();
+  useEffect(
+    () => {
+      if (profilePic.scale !== 1) localStorage.setItem('scale', profilePic.scale);
+    },
+    [profilePic]
+  );
 
   const [hidden, setHidden] = useState(true);
   const [inputField, setInputField] = useState(false);
   function changeProfilePic(file) {
-    uploadBytes(ref(storage, `profile-pictures/${currentUser}.jpg`), file).then((snapshot) => {
-      console.log('Uploaded a blob or file!', snapshot);
-    });
+    const storage = getStorage();
+    const uploadTask = uploadBytesResumable(ref(storage, `profile-pictures/${currentUser.email}.jpg`), file);
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        // Observe state change events such as progress, pause, and resume
+        // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+        const progress = snapshot.bytesTransferred / snapshot.totalBytes * 100;
+        console.log('Upload is ' + progress + '% done');
+        switch (snapshot.state) {
+          case 'paused':
+            console.log('Upload is paused');
+            break;
+          case 'running':
+            console.log('Upload is running');
+            break;
+        }
+      },
+      (error) => {
+        console.log(error);
+      },
+      () => {
+        // Handle successful uploads on complete
+        // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          localStorage.setItem('profile-pic', downloadURL);
+        });
+      }
+    );
   }
+
   useEffect(
     () => {
-      const storage = getStorage();
-      getDownloadURL(ref(storage, `profile-pictures/${currentUser}.jpg`))
-        .then((url) => {
-          const xhr = new XMLHttpRequest();
-          xhr.responseType = 'blob';
-          xhr.onload = (event) => {
-            const blob = xhr.response;
-            console.log(blob);
-          };
-          xhr.open('GET', url);
-          xhr.send();
-
-          setProfilePic(url);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+      const localStorageImg = localStorage.getItem('profile-pic');
+      const scale = localStorage.getItem('scale');
+      if (localStorageImg) {
+        setProfilePic({ image: localStorageImg, scale: scale ? scale : 1 });
+      }
+      else {
+        const storage = getStorage();
+        getDownloadURL(ref(storage, `profile-pictures/${currentUser.email}.jpg`))
+          .then((url) => {
+            setProfilePic({ image: url, scale: scale ? scale : 1 });
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      }
     },
     [currentUser]
   );
@@ -81,15 +111,13 @@ export default function Dashboard() {
 
   return (
     <Fragment>
-      <ImageContext.Provider value={{ profilePic, setProfilePic }}>
-        <Modal
-          changeProfilePic={changeProfilePic}
-          setOpen={setInputField}
-          isOpen={inputField}
-          profilePic={profilePic}
-          setProfilePic={setProfilePic}
-        />
-      </ImageContext.Provider>
+      <Modal
+        changeProfilePic={changeProfilePic}
+        setOpen={setInputField}
+        isOpen={inputField}
+        profilePic={profilePic}
+        setProfilePic={setProfilePic}
+      />
       <header className={classes.header}>
         <div className={classes.logo}>
           <Image
@@ -123,7 +151,7 @@ export default function Dashboard() {
               src={profilePic.image}
               alt='profile-picture'
               style={{
-                transform: `scale(${profilePic.scale})`
+                transform: `scale(${profilePic.scale * 1.2})`
               }}
               id='profile-pic'
               onClick={() => setInputField(true)}
@@ -138,9 +166,17 @@ export default function Dashboard() {
           >
             <pre>
               <strong>Email: </strong>
-              {currentUser && currentUser.email ? currentUser.email : currentUser && currentUser.uid}
-              <i className='fa fa-chevron-down' aria-hidden='true' style={{ marginLeft: '0.5rem' }} />
+              {currentUser && currentUser.email ? (
+                currentUser.email
+              ) : currentUser && currentUser.uid ? (
+                currentUser.uid
+              ) : (
+                'loading...'
+              )}
             </pre>
+            <div className='position-absolute mb-1' style={{ width: '91%', textAlign: 'right' }}>
+              <i className='fa fa-chevron-down' aria-hidden='true' />
+            </div>
           </Button>
           <div hidden={hidden} className={classes.dropDownMenu}>
             <Link to='/update-profile' className={classes['dropdown-item']}>
@@ -164,15 +200,7 @@ export default function Dashboard() {
       <Container className={`d-flex justify-content-center ${classes.bg}`} fluid>
         {error && <Alert variant='danger'>{error}</Alert>}
 
-        <div style={{ color: 'white', textAlign: 'center', fontSize: '2.25rem' }}>
-          <Row style={{ maxWidth: '50rem' }}>
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-            dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
-            ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat
-            nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
-            anim id est laborum."
-          </Row>
-
+        <div style={{ color: 'black', textAlign: 'center', fontSize: '2.25rem' }}>
           <Row className='justify-content-center mt-5' style={{ height: '5rem' }}>
             <input
               id='playWithFriend'
@@ -196,4 +224,4 @@ export default function Dashboard() {
       </Container>
     </Fragment>
   );
-}
+});

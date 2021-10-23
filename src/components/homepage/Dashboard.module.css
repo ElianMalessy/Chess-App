@@ -55,17 +55,20 @@
   min-height: 100vh;
   min-width: 100vw;
   background-size: cover;
-  background-color: hsl(0, 0%, 6%);
+  background-image: url('https://i.imgur.com/yyEEvUf.jpeg');
 }
 .profileNav {
-  transform: translate(4rem);
+  transform: translate(6rem);
 }
 .dropDownButton {
   background-color: inherit;
   transform: translate(1rem);
   align-self: center;
   height: 2.5rem;
+  width: 14rem;
   box-shadow: none;
+  display: flex;
+  align-items: center;
 }
 
 a {

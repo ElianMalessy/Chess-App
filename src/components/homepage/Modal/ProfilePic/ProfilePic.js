@@ -5,7 +5,6 @@ export default function ProfilePic({ tempProfilePic, setTempProfilePic, children
     const scale = parseFloat(e.target.value);
     setTempProfilePic({ ...tempProfilePic, scale: scale });
   };
-
   const handlePositionChange = (position) => {
     setTempProfilePic({ ...tempProfilePic, position: position });
   };
