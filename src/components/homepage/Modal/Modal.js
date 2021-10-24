@@ -5,6 +5,7 @@ import Backdrop from './Backdrop';
 import ModalContainer from './ModalContainer';
 import { useRef, useState, useEffect } from 'react';
 import ProfilePic from './ProfilePic/ProfilePic';
+import dataURLtoFile from '../convertToFile';
 
 const dropIn = {
   hidden: {
@@ -28,25 +29,23 @@ const dropIn = {
 };
 export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, setProfilePic }) {
   const fileInputRef = useRef();
-  const [tempProfilePic, setTempProfilePic] = useState({
-    image: profilePic.image,
-    position: { x: 0.5, y: 0.5 },
-    scale: profilePic.scale,
-    height: 165,
-    width: 165
-  });
+  const [tempProfilePic, setTempProfilePic] = useState(profilePic);
   useEffect(
     () => {
-      if (tempProfilePic.image !== profilePic.image && tempProfilePic.scale !== profilePic.scale)
-        setTempProfilePic({ ...tempProfilePic, image: profilePic.image, scale: profilePic.scale });
-      else if (tempProfilePic.image !== profilePic.image)
-        setTempProfilePic({ ...tempProfilePic, image: profilePic.image });
-      else if (tempProfilePic.scale !== profilePic.scale)
-        setTempProfilePic({ ...tempProfilePic, scale: profilePic.scale });
+      if (tempProfilePic !== profilePic) setTempProfilePic(profilePic);
     },
     // eslint-disable-next-line
-    [profilePic, tempProfilePic]
+    [profilePic]
   );
+  const possibleSwitch = useRef(true);
+
+  function submitUrl(e) {
+    console.log(e.target.value);
+
+    possibleSwitch.current = true;
+    setTempProfilePic(e.target.value);
+  }
+
   function newProfilePicFile(e) {
     var files = e.target.files[0]; // FileList object
     if (files === undefined) return;
@@ -55,9 +54,8 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
     // Closure to capture the file information.
     reader.onload = (function(file) {
       return function(e) {
-        setTempProfilePic({ ...tempProfilePic, image: e.target.result });
-        console.log(tempProfilePic.scale);
-        changeProfilePic(file);
+        possibleSwitch.current = true;
+        setTempProfilePic(e.target.result);
       };
     })(files);
 
@@ -78,14 +76,17 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
           >
             <Card className={classes['orange-gradient'] + ' ' + classes['imageCard']}>
               <Card.Body>
-                <ProfilePic tempProfilePic={tempProfilePic}>
+                <ProfilePic
+                  tempProfilePic={tempProfilePic}
+                  setTempProfilePic={setTempProfilePic}
+                  possible={possibleSwitch}
+                >
                   <Card.Text className='d-flex align-items-center justify-content-center'>
                     <ModalButton
                       onClick={() => {
-                        setProfilePic({
-                          image: tempProfilePic.image,
-                          scale: tempProfilePic.scale
-                        });
+                        setProfilePic(tempProfilePic);
+                        const file = dataURLtoFile(tempProfilePic, 'user.jpg');
+                        changeProfilePic(file);
                       }}
                       label='Submit'
                       btnClass='modal-button2'
@@ -97,7 +98,11 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
                 <Form style={{ marginLeft: '14.5rem' }}>
                   <Form.Group id='image'>
                     <Form.Label>Image url:</Form.Label>
-                    <Form.Control type='url' placeholder='e.g, https://images.chesscomfiles.com/uploads/picture.png' />
+                    <Form.Control
+                      type='url'
+                      placeholder='e.g, https://images.chesscomfiles.com/uploads/picture.png'
+                      onChange={submitUrl} // need to allow cors, very few images work so i guess set up a server smh
+                    />
                   </Form.Group>
 
                   <Form.Group className='mt-2' style={{ display: 'flex', flexDirection: 'column' }}>
@@ -110,7 +115,7 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
                       ref={fileInputRef}
                       style={{ display: 'none' }}
                     />
-                    <label htmlFor='select-image'>
+                    <label htmlFor='select-image' style={{ width: '10.3rem' }}>
                       <ModalButton
                         onClick={() => fileInputRef.current.click()}
                         label='Upload Image'

@@ -1,6 +1,6 @@
 {
     "cmake.configureOnOpen": false,
     "prettier.tabWidth": 2,
-    "css.lint.unknownAtRules": "ignore"
-      
+    "css.lint.unknownAtRules": "ignore",
+
 }

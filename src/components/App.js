@@ -6,8 +6,8 @@ import Dashboard from './homepage/Dashboard';
 import Game from './game/Game';
 import Login from '../components/login/Login';
 import PrivateRoute from "./PrivateRoute"
-import ForgotPassword from "../components/homepage/ForgotPassword"
-import UpdateProfile from "../components/homepage/UpdateProfile"
+import ForgotPassword from "../components/homepage/dropdown/ForgotPassword"
+import UpdateProfile from "../components/homepage/dropdown/UpdateProfile"
 
 function App() {
 	// /Game should be a private route as well in production

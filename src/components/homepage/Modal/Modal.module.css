@@ -9,6 +9,7 @@
 }
 .cardTitle {
   font-size: 2rem;
+  margin-left: 4rem;
 }
 .backdrop {
   position: absolute;
@@ -86,9 +87,10 @@
   background: var(--gradient2);
 }
 .modal-button3 {
-  font-size: 1rem;
+  font-size: 0.8rem;
   background: var(--dark);
-  padding: 0.5rem 1rem;
+  height: 2.5rem;
+  width: 7.75rem;
 }
 
 .save-button {

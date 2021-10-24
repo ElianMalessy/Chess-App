@@ -1,60 +1,69 @@
-import React from 'react';
+import { useRef, useState, useEffect } from 'react';
 import AvatarEditor from 'react-avatar-editor';
-export default class ProfilePic extends React.Component {
-  state = {
-    image: this.props.tempProfilePic.image,
+export default function ProfilePic({ tempProfilePic, children, setTempProfilePic, possible }) {
+  const scaledImg = useRef(tempProfilePic);
+  const [state, setState] = useState({
+    image: tempProfilePic,
     position: { x: 0.5, y: 0.5 },
     scale: 1,
-    borderRadius: 0,
-    preview: null,
-    width: this.props.tempProfilePic.width,
-    height: this.props.tempProfilePic.height
-  };
-
-  handleNewImage = (e) => {
-    this.setState({ image: e.target.files[0] });
-  };
-
-  handleScale = (e) => {
+    height: 165,
+    width: 165
+  });
+  useEffect(
+    () => {
+      // file upload as new profile pic preview
+      if (state.image !== tempProfilePic && possible.current === true) setState({ ...state, image: tempProfilePic });
+    },
+    // eslint-disable-next-line
+    [tempProfilePic]
+  );
+  const handleScale = (e) => {
     const scale = parseFloat(e.target.value);
-    this.setState({ scale });
+    possible.current = false;
+    setState({ ...state, scale: scale });
+    setTempProfilePic(scaledImg.current);
   };
 
-  handlePositionChange = (position) => {
-    this.setState({ position });
+  const handlePositionChange = (position) => {
+    possible.current = false;
+    setState({ ...state, position: position });
+    setTempProfilePic(scaledImg.current);
   };
 
-  setEditorRef = (editor) => {
+  const setEditorRef = (editor) => {
     if (editor) {
-      this.editor = editor;
-      const img = this.editor.getImageScaledToCanvas().toDataURL();
-      console.log(img);
+      scaledImg.current = editor.getImageScaledToCanvas().toDataURL();
     }
   };
-  render() {
-    return (
-      <div style={{ position: 'absolute' }}>
-        <div>
-          <AvatarEditor
-            crossOrigin='anonymous'
-            scale={parseFloat(this.state.scale)}
-            image={this.state.image}
-            width={this.state.width}
-            height={this.state.height}
-            position={this.state.position}
-            borderRadius={this.state.width / 50}
-            onPositionChange={this.handlePositionChange}
-            ref={(ref) => this.setEditorRef(ref)}
-            onLoadSuccess={this.loadSuccess}
-          />
-        </div>
-        <br />
-        New File:
-        <input name='newImage' type='file' onChange={this.handleNewImage} />
-        <br />
+  return (
+    <div style={{ position: 'absolute' }}>
+      <AvatarEditor
+        crossOrigin='anonymous'
+        scale={parseFloat(state.scale)}
+        image={state.image}
+        width={state.width}
+        height={state.height}
+        position={state.position}
+        borderRadius={state.width / 2}
+        onPositionChange={handlePositionChange}
+        ref={(ref) => setEditorRef(ref)}
+      />
+      <br />
+      <div className='d-flex align-items-center justify-content-center'>
         Zoom:
-        <input name='scale' type='range' onChange={this.handleScale} min='1' max='2' step='0.01' defaultValue='1' />
+        <input
+          name='scale'
+          type='range'
+          onChange={handleScale}
+          min={'1'}
+          max='2'
+          step='0.01'
+          defaultValue='1'
+          style={{ width: state.width, marginLeft: '0.15rem', marginTop: '0.2rem' }}
+        />
       </div>
-    );
-  }
+
+      {children}
+    </div>
+  );
 }

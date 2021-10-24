@@ -6,6 +6,7 @@ import { Link, useHistory } from 'react-router-dom';
 import classes from './Dashboard.module.css';
 import { getStorage, ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import Modal from './Modal/Modal';
+import dataURLtoFile, { toDataURL } from './convertToFile';
 import 'font-awesome/css/font-awesome.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -27,16 +28,8 @@ export default memo(function Dashboard() {
   }
 
   // 'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg --magnus carlsen pfp'
-  const [profilePic, setProfilePic] = useState({
-    image:
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png',
-    scale: 1
-  });
-  useEffect(
-    () => {
-      if (profilePic.scale !== 1) localStorage.setItem('scale', profilePic.scale);
-    },
-    [profilePic]
+  const [profilePic, setProfilePic] = useState(
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png'
   );
 
   const [hidden, setHidden] = useState(true);
@@ -64,8 +57,6 @@ export default memo(function Dashboard() {
         console.log(error);
       },
       () => {
-        // Handle successful uploads on complete
-        // For instance, get the download URL: https://firebasestorage.googleapis.com/...
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
           localStorage.setItem('profile-pic', downloadURL);
         });
@@ -75,22 +66,31 @@ export default memo(function Dashboard() {
 
   useEffect(
     () => {
-      const localStorageImg = localStorage.getItem('profile-pic');
-      const scale = localStorage.getItem('scale');
-      if (localStorageImg) {
-        setProfilePic({ image: localStorageImg, scale: scale ? scale : 1 });
+      const localProfilePic = localStorage.getItem('profile-pic');
+      const storage = getStorage();
+
+      if (localProfilePic) {
+        console.log(localProfilePic);
+        setProfilePic(localProfilePic);
+        return;
       }
       else {
-        const storage = getStorage();
         getDownloadURL(ref(storage, `profile-pictures/${currentUser.email}.jpg`))
           .then((url) => {
-            setProfilePic({ image: url, scale: scale ? scale : 1 });
+            setProfilePic(url);
           })
           .catch((error) => {
-            console.log(error);
+            const img =
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png';
+            setProfilePic(img);
+            toDataURL(img).then((dataUrl) => {
+              const fileData = dataURLtoFile(dataUrl, `${currentUser.email}.jpg`);
+              changeProfilePic(fileData);
+            });
           });
       }
     },
+    // eslint-disable-next-line
     [currentUser]
   );
   const clickRef = useRef();
@@ -145,63 +145,67 @@ export default memo(function Dashboard() {
         <Nav className={classes.profileNav}>
           <div
             className='d-flex align-items-center justify-content-center'
-            style={{ overflow: 'hidden', height: '4.5rem', width: '4.5rem', borderRadius: '50%' }}
+            style={{
+              overflow: 'hidden',
+              height: '4.5rem',
+              width: '4.5rem',
+              borderRadius: '50%',
+              transform: 'translate(-1rem, 0)'
+            }}
           >
             <Image
-              src={profilePic.image}
+              src={profilePic}
               alt='profile-picture'
-              style={{
-                transform: `scale(${profilePic.scale * 1.2})`
-              }}
               id='profile-pic'
               onClick={() => setInputField(true)}
               className={classes.profilePic}
             />
           </div>
-          <Button
-            className={classes.dropDownButton}
-            onClick={() => (hidden === true ? setHidden(false) : setHidden(true))}
-            ref={clickRef}
-            style={{ boxShadow: 'none' }}
-          >
-            <pre>
-              <strong>Email: </strong>
-              {currentUser && currentUser.email ? (
-                currentUser.email
-              ) : currentUser && currentUser.uid ? (
-                currentUser.uid
-              ) : (
-                'loading...'
-              )}
-            </pre>
-            <div className='position-absolute mb-1' style={{ width: '91%', textAlign: 'right' }}>
-              <i className='fa fa-chevron-down' aria-hidden='true' />
+          <div ref={clickRef} className='d-flex align-items-center'>
+            <Button
+              className={classes.dropDownButton}
+              onClick={() => (hidden === true ? setHidden(false) : setHidden(true))}
+              style={{ boxShadow: 'none' }}
+            >
+              <pre>
+                <strong>Email: </strong>
+                {currentUser && currentUser.email ? (
+                  currentUser.email
+                ) : currentUser && currentUser.uid ? (
+                  currentUser.uid
+                ) : (
+                  'loading...'
+                )}
+              </pre>
+              <div className='position-absolute mb-1' style={{ width: '69.25%', textAlign: 'right' }}>
+                <i className='fa fa-chevron-down' aria-hidden='true' />
+              </div>
+            </Button>
+            <div hidden={hidden} className={classes.dropDownMenu}>
+              <Link to='/update-profile' className={classes['dropdown-item']}>
+                <i className='fa fa-user-circle-o' aria-hidden='true' /> Update Profile
+              </Link>
+              <Link to='/' className={classes['dropdown-item']}>
+                <i className='fa fa-user-plus' aria-hidden='true' /> Add Friend
+              </Link>
+              <Link to='/' className={classes['dropdown-item']}>
+                <i className='fa fa-users' aria-hidden='true' /> Friends
+              </Link>
+              <Link to='/forgot-password' className={classes['dropdown-item']}>
+                <i className='fa fa-key' aria-hidden='true' /> Change Password
+              </Link>
+              <Link to='#' className={classes['dropdown-item']} onClick={handleLogout}>
+                <i className='fa fa-sign-out' aria-hidden='true' /> Logout
+              </Link>
             </div>
-          </Button>
-          <div hidden={hidden} className={classes.dropDownMenu}>
-            <Link to='/update-profile' className={classes['dropdown-item']}>
-              <i className='fa fa-user-circle-o' aria-hidden='true' /> Update Profile
-            </Link>
-            <Link to='/' className={classes['dropdown-item']}>
-              <i className='fa fa-user-plus' aria-hidden='true' /> Add Friend
-            </Link>
-            <Link to='/' className={classes['dropdown-item']}>
-              <i className='fa fa-users' aria-hidden='true' /> Friends
-            </Link>
-            <Link to='/forgot-password' className={classes['dropdown-item']}>
-              <i className='fa fa-key' aria-hidden='true' /> Change Password
-            </Link>
-            <Link to='#' className={classes['dropdown-item']} onClick={handleLogout}>
-              <i className='fa fa-sign-out' aria-hidden='true' /> Logout
-            </Link>
           </div>
         </Nav>
       </header>
       <Container className={`d-flex justify-content-center ${classes.bg}`} fluid>
-        {error && <Alert variant='danger'>{error}</Alert>}
+        <div style={{ alignSelf: 'flex-end' }}>
+          {error && <Alert variant='danger'>{error}</Alert>}
 
-        <div style={{ color: 'black', textAlign: 'center', fontSize: '2.25rem' }}>
-          <Row className='justify-content-center mt-5' style={{ height: '5rem' }}>
+          <Row className='d-flex align-items-center' style={{ height: '5rem' }}>
             <input
               id='playWithFriend'
               spellCheck='false'
@@ -212,7 +216,6 @@ export default memo(function Dashboard() {
             <button
               className={`btn btn-primary ${classes.roundedCirc}`}
               onClick={() => {
-                // needa get a diff userID than passing it from useLocation
                 navigator.clipboard.writeText('localhost:3000/Game/' + randomURL.current);
                 alert('Copied to clipboard');
               }}
