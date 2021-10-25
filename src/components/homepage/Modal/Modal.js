@@ -88,7 +88,7 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
                         const file = dataURLtoFile(tempProfilePic, 'user.jpg');
                         changeProfilePic(file);
                       }}
-                      label='Submit'
+                      label='Save'
                       btnClass='modal-button2'
                     />
                   </Card.Text>

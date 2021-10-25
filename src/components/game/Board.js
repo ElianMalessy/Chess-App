@@ -1,11 +1,15 @@
 import { useContext, useEffect, useState, useRef, memo } from 'react';
 import classes from './Board.module.css';
 import PieceMemo from './Piece';
-import { PlayerContext } from './Game';
+import { PlayerContext, CheckContext, TurnContext } from './Game';
+import $ from 'jquery'
+import findPossibleMoves from './moveFunctions';
 
 function Board({ currentUser }) {
   const FEN = useRef(localStorage.getItem('FEN'));
   if (!FEN.current) FEN.current = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+  const checkPiece = useContext(CheckContext);
+  const { turn } = useContext(TurnContext);
 
   const [board, setBoard] = useState([]);
   const boardFiller = useRef([]);
@@ -110,7 +114,23 @@ function Board({ currentUser }) {
     // eslint-disable-next-line
     [playerColor]
   );
-
+  useEffect(
+    () => {
+      if (checkPiece) {
+        let oppKingPos, kingPos;
+        if (turn[0] === 'w') {
+          oppKingPos = $('span[id^=k][class*=bl]')[0];
+          kingPos = $('span[id^=k][class*=wh]')[0];
+        }
+        else {
+          kingPos = $('span[id^=k][class*=bl]')[0];
+          oppKingPos = $('span[id^=k][class*=wh]')[0];
+        }
+        findPossibleMoves(checkPiece, turn, oppKingPos, kingPos); // only use for determining checkmate and possible moves if there is a check
+      }
+    },
+    [turn, checkPiece]
+  );
   return (
     <div className={classes.chessboard} id='board'>
       {board}

@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export const PlayerContext = createContext();
 export const TurnContext = createContext({ col: ['white', 'pe2', 'pe4'], setCol: () => {} });
 export const FenContext = createContext();
+export const CheckContext = createContext();
 
 export default function Game(props) {
   // default FEN notation: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
@@ -194,7 +195,7 @@ export default function Game(props) {
   );
 
   const setLastMoveFromOtherUser = useRef(true);
-
+  const setLastMoveFromOtherUser1 = useRef(true);
   useEffect(
     () => {
       // if turn is 'white' or 'black' then this is the wrong user/socket as it has no newLocation
@@ -203,7 +204,9 @@ export default function Game(props) {
       }
       let newLocation = [turn[1], turn[2]];
       setLastMoveFromOtherUser.current = false;
+      setLastMoveFromOtherUser1.current = false; // the person who moved the piece is the one doing this so they shouldnt listen to database changes
 
+      console.log(board.current);
       let column = newLocation[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
       let row = parseInt(newLocation[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
       let piece = board.current[7 - row][column];
@@ -251,11 +254,19 @@ export default function Game(props) {
       setFEN(temp_FEN);
       localStorage.setItem('FEN', temp_FEN);
       update(ref(database, 'Games/' + gameID.current), {
-        FEN: temp_FEN
-      });
-      update(ref(database, 'Games/' + gameID.current), {
+        FEN: temp_FEN,
         lastMove: newLocation
       });
+      if (turn[3] !== undefined) {
+        update(ref(database, 'Games/' + gameID.current), {
+          check: turn[3]
+        });
+      }
+      else {
+        update(ref(database, 'Games/' + gameID.current), {
+          check: null
+        });
+      }
     },
     [fixBoardArray, turn]
   );
@@ -277,14 +288,30 @@ export default function Game(props) {
     });
   });
 
+  const [check, setCheck] = useState(null);
+  useEffect(() => {
+    const dbRef = ref(database, 'Games/' + gameID.current + '/check');
+    onValue(dbRef, (snapshot) => {
+      if (snapshot.exists()) {
+        if (setLastMoveFromOtherUser1.current === false) setLastMoveFromOtherUser1.current = true;
+        else {
+          setCheck(snapshot.val());
+          off(dbRef);
+        }
+      }
+    });
+  });
+  
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');
     onValue(dbRef, (snapshot) => {
       // if the arrays dont match then the person who moved the piece is running this code, which is not wanted
       let newLocation = [turn[1], turn[2]];
-      if (snapshot.exists() && arraysMatch(snapshot.val(), newLocation) === false) {
+      console.log(newLocation, turn);
+      //snapshot.exists() && arraysMatch(snapshot.val(), newLocation) === false
+      if (snapshot.exists()) {
         if (setLastMoveFromOtherUser.current === false) setLastMoveFromOtherUser.current = true;
-        else if (setLastMoveFromOtherUser.current === true) {
+        else {
           newLocation = snapshot.val();
           let old_location = $('#' + newLocation[0]);
           if (old_location.length === 0) return;
@@ -320,6 +347,7 @@ export default function Game(props) {
 
   const FENMemo = useMemo(
     () => {
+      console.log(FEN[FEN.length - 2] + FEN[FEN.length - 1]);
       return { FEN: FEN[FEN.length - 2] + FEN[FEN.length - 1] };
     },
     [FEN]
@@ -333,7 +361,9 @@ export default function Game(props) {
         <CapturedPanel>
           <TurnContext.Provider value={turnValue}>
             <FenContext.Provider value={FENMemo}>
-              <BoardMemo currentUser={currentUserID.current} FEN={FEN} />
+              <CheckContext.Provider value={check}>
+                <BoardMemo currentUser={currentUserID.current} FEN={FEN} />
+              </CheckContext.Provider>
             </FenContext.Provider>
           </TurnContext.Provider>
         </CapturedPanel>

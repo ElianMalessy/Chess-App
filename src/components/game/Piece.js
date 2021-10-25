@@ -4,12 +4,15 @@ import classNames from 'classnames';
 import { TurnContext, PlayerContext } from './Game';
 import { CapturedPieces } from './CapturedPanel';
 import $ from 'jquery';
+import { moveFunctions, isCheck } from './moveFunctions';
 
 export default memo(function PieceMemo({ color, position }) {
   const { turn, setTurn } = useContext(TurnContext);
   const { setPiece } = useContext(CapturedPieces);
   const playerColor = useContext(PlayerContext);
-  //const { FEN } = useContext(FenContext);
+
+  
+  
 
   function drag(me) {
     const move = $(me.target);
@@ -42,55 +45,57 @@ export default memo(function PieceMemo({ color, position }) {
   // at that time you shouldve already switched the id from NaN to the destination position and put it in the destination square on the DOM
   function endDrag(me) {
     let moving_piece = $(me.target);
-    const target_id = me.target.id;
+    const original_id = me.target.id;
     moving_piece.css('z-index', -100);
-    let destination = document.elementFromPoint(me.pageX, me.pageY).id;
-    console.log(target_id, destination);
-    if (destination && !(destination[1] === target_id[1] && destination[2] === target_id[2])) {
-      let func = moveFunctions[target_id[0]](destination, target_id);
+
+    let destinationSquare = document.elementFromPoint(me.pageX, me.pageY).id;
+    if (destinationSquare && !(destinationSquare[1] === original_id[1] && destinationSquare[2] === original_id[2])) {
+      // if same square as original, then end
+      let func = moveFunctions[original_id[0]](destinationSquare, original_id);
       if (func) {
-        let kingPos = $('[id^=k][class*=wh]')[0];
-        let kingPos2 = $('[id^=k][class*=bl]')[0];
-        $('#' + target_id).attr('id', 'NaN');
+        let whiteKingPos = $('[id^=k][class*=wh]')[0];
+        let blackKingPos = $('[id^=k][class*=bl]')[0];
 
         var endLocation = [];
-        let capturedPiece = $('#' + destination)[0].firstChild;
-        if (capturedPiece) {
-          if ($('#' + capturedPiece.id).attr('color') !== me.target.getAttribute('color') && func !== 'p') {
-            var moved = true;
-            const check = turn === 'white' ? isCheck(kingPos.id) : isCheck(kingPos2.id);
-            if (check) {
-              $('#NaN').attr('id', target_id);
-              moved = false;
-            }
-            else {
-              setPiece($('#' + capturedPiece.id)[0]);
-              $('#' + capturedPiece.id).css('opacity', 0);
-              $('#' + capturedPiece.id).remove();
+        let capturedPiece = $('#' + destinationSquare)[0].firstChild;
+        const finalPosition = original_id[0] + destinationSquare[1] + destinationSquare[2];
 
-              let destination2 = document.elementFromPoint(me.pageX, me.pageY);
-              $('#NaN').appendTo('#' + destination2.id);
-              $('#NaN').attr('id', target_id[0] + destination[1] + destination[2]);
-              endLocation.push(target_id, target_id[0] + destination[1] + destination[2]);
-              //const check1 = turn === 'white' ? isCheck(kingPos2.id) : isCheck(kingPos.id);
-            }
+        var moved = true;
+        // if their king is checked, the piece cannot move, exceeeeeeeept if it protects the king
+        $('#' + original_id).attr('id', finalPosition); // id change to see that if in new position there are any checks
+        const check = turn === 'white' ? isCheck(whiteKingPos.id) : isCheck(blackKingPos.id);
+        if (check) {
+          // if the move causes a discovered check to ones own king, then it is not a legal move
+          // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
+          $(finalPosition).attr('id', original_id);
+          moved = false;
+        }
+        else if (
+          capturedPiece &&
+          $('#' + capturedPiece.id).attr('color') !== me.target.getAttribute('color') && // pieces of the same color cannot capture each other
+          func !== 'p' // a pawn move forward cannot capture a piece
+        ) {
+          setPiece($('#' + capturedPiece.id)[0]);
+          $('#' + capturedPiece.id).css('opacity', 0);
+          $('#' + capturedPiece.id).remove();
+
+          let destination2 = document.elementFromPoint(me.pageX, me.pageY);
+          $(finalPosition).appendTo('#' + destination2.id);
+          endLocation.push(original_id, finalPosition);
+          const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
+          if (check1) {
+            endLocation.push(check1[0]);
           }
         }
         else {
-          const check = turn === 'white' ? isCheck(kingPos.id) : isCheck(kingPos2.id);
-          //console.log(check, turn === 'white' ? kingPos.id : kingPos2.id);
-          if (check) {
-            $('#NaN').attr('id', target_id);
-            moved = false;
+          moved = true;
+          $('#' + finalPosition).appendTo('#' + destinationSquare);
+          endLocation.push(original_id, finalPosition);
+          const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(blackKingPos.id);
+          if (check1) {
+            endLocation.push(check1[0]);
           }
-          else {
-            moved = true;
-            $('#NaN').appendTo('#' + destination);
-            $('#NaN').attr('id', target_id[0] + destination[1] + destination[2]);
-            endLocation.push(target_id, target_id[0] + destination[1] + destination[2]);
-            //const check1 = turn === 'white' ? isCheck(kingPos2.id) : isCheck(kingPos.id);
-            //console.log(check1, turn === 'white' ? kingPos2.id : kingPos.id);
-          }
+          //console.log(check1, turn === 'white' ? kingPos2.id : kingPos.id);
         }
       }
     }
@@ -100,169 +105,14 @@ export default memo(function PieceMemo({ color, position }) {
     moving_piece.data('lastTransform', { dx: 0, dy: 0 });
     if (moved) {
       // when this player has made a move, broadcast that to the other player
+      console.log(endLocation);
+      if (endLocation[0] === undefined || endLocation[1] === undefined) return;
+
       turn === 'white' ? setTurn(['black', ...endLocation]) : setTurn(['white', ...endLocation]);
     }
   }
-  function isCheck(kingPos) {
-    let pieces =
-      $('#' + kingPos).attr('color')[0] === 'b'
-        ? $('span[class*=wh][id!=capturedPiece][id!=NaN]')
-        : $('span[class*=bl][id!=capturedPiece][id!=NaN]');
-    // checks if the move is legal by putting in the destination and looking for checks before actually appending to new square
-    const potential_check_pieces = [...pieces];
-    const checking_pieces = [];
-    potential_check_pieces.forEach((item) => {
-      //console.log(item.id, kingPos);
-      if (moveFunctions[item.id[0]]('S' + kingPos[1] + kingPos[2], item.id) === true) checking_pieces.push(item.id);
-    });
-    return checking_pieces.length > 0 ? checking_pieces : false;
-  }
 
-  function moveThruPiecesDiag(destination, origin) {
-    let destLetter = destination[1].charCodeAt(0);
-    let origLetter = origin[1].charCodeAt(0);
-
-    if (destLetter - origLetter > 0) {
-      for (let i = 1; i < destLetter - origLetter; i++) {
-        let num;
-        destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) + i) : (num = parseInt(origin[2]) - i);
-        let str = String.fromCharCode(origLetter + i) + num;
-        if ($('[id$=' + str).length !== 1) return false;
-      }
-      return true;
-    }
-    else {
-      for (let i = -1; i > destLetter - origLetter; i--) {
-        let num;
-        destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) - i) : (num = parseInt(origin[2]) + i);
-        let str = String.fromCharCode(origLetter + i) + num;
-        if ($('[id$=' + str).length !== 1) return false;
-      }
-      return true;
-    }
-  }
-  function moveThruPiecesVertLat(destination, origin) {
-    let destLetter = destination[1].charCodeAt(0);
-    let origLetter = origin[1].charCodeAt(0);
-    //horizontal movement
-    if (destLetter - origLetter > 0) {
-      for (let i = 1; i < destLetter - origLetter; i++) {
-        let str = String.fromCharCode(origLetter + i) + origin[2];
-        if ($('[id$=' + str).length !== 1) return false;
-      }
-      return true;
-    }
-    else if (destLetter - origLetter < 0) {
-      for (let i = -1; i > destLetter - origLetter; i--) {
-        let str = String.fromCharCode(origLetter + i) + origin[2];
-        if ($('[id$=' + str).length !== 1) return false;
-      }
-      return true;
-    }
-    else {
-      // vertical movement
-      if (destination[2] - origin[2] > 0) {
-        for (let i = 1; i < destination[2] - origin[2]; i++) {
-          let num = parseInt(origin[2]) + i;
-          let str = String.fromCharCode(origLetter) + num;
-          if ($('[id$=' + str).length !== 1) return false;
-        }
-        return true;
-      }
-      else if (destination[2] - origin[2] < 0) {
-        for (let i = -1; i > destination[2] - origin[2]; i--) {
-          let num = parseInt(origin[2]) + i;
-          let str = String.fromCharCode(origLetter) + num;
-          if ($('[id$=' + str).length !== 1) return false;
-        }
-        return true;
-      }
-    }
-  }
-  // for every piece move except a pawn, the way u calculate possible moves, is u look at the destination and u backtrack
-  // say rook a1 and pawn a4, destination is rook a1 - a5. u start with checking if rook a2 is possible, then rook a3 and so forth
-  // for king check, you ask if it can be captured next move
-  var moveFunctions = {
-    n: function canMoveKnight(destination, origin) {
-      let destLetter = destination[1].charCodeAt(0);
-      let origLetter = origin[1].charCodeAt(0);
-      if (
-        (Math.abs(destLetter - origLetter) === 2 && Math.abs(destination[2] - origin[2]) === 1) ||
-        (Math.abs(destLetter - origLetter) === 1 && Math.abs(destination[2] - origin[2]) === 2)
-      )
-        return true;
-    },
-    b: function canMoveBishop(destination, origin) {
-      let destLetter = destination[1].charCodeAt(0);
-      let origLetter = origin[1].charCodeAt(0);
-      if (Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2])) {
-        if (moveThruPiecesDiag(destination, origin)) return true;
-      }
-    },
-    r: function canMoveRook(destination, origin) {
-      let destLetter = destination[1].charCodeAt(0);
-      let origLetter = origin[1].charCodeAt(0);
-      if (destLetter === origLetter || destination[2] === origin[2]) {
-        if (moveThruPiecesVertLat(destination, origin)) return true;
-      }
-    },
-    q: function canMoveQueen(destination, origin) {
-      let destLetter = destination[1].charCodeAt(0);
-      let origLetter = origin[1].charCodeAt(0);
-      if ((destLetter === origLetter || destination[2] === origin[2]) && moveThruPiecesVertLat(destination, origin))
-        return true;
-      else if (
-        Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2]) &&
-        moveThruPiecesDiag(destination, origin)
-      )
-        return true;
-    },
-    k: function canMoveKing(destination, origin) {
-      let destLetter = destination[1].charCodeAt(0);
-      let origLetter = origin[1].charCodeAt(0);
-      if (
-        (Math.abs(destLetter - origLetter) === 1 || Math.abs(destLetter - origLetter) === 0) &&
-        (Math.abs(destination[2] - origin[2]) === 1 || Math.abs(destination[2] - origin[2]) === 0)
-      )
-        return true;
-    },
-    p: function canMovePawn(destination, origin) {
-      let destLetter = destination[1].charCodeAt(0);
-      let origLetter = origin[1].charCodeAt(0);
-      let pawn = $('#' + origin);
-      let pawnColor = pawn.attr('color');
-
-      if (Math.abs(destLetter - origLetter) === 1) {
-        //let enPassent_sqaure;
-        //FEN[1] === '-' ? (enPassent_sqaure = null) : (enPassent_sqaure = FEN);
-        let attemptedEnPassent_sqaure;
-        if ($('#' + destination).children().length > 0 && Math.abs(destination[2] - origin[2]) === 1) {
-          return true;
-        }
-        else if (pawnColor === 'white') {
-          attemptedEnPassent_sqaure = $('#S' + destination[1] + (parseInt(destination[2]) - 1));
-          //console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
-        }
-        else if (pawnColor === 'black') {
-          attemptedEnPassent_sqaure = $('#S' + destination[1] + (parseInt(destination[2]) + 1));
-          //console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
-        }
-        if (attemptedEnPassent_sqaure) {
-          //console.log(attemptedEnPassent_sqaure.children());
-        }
-      }
-      else if (destLetter - origLetter === 0 && pawnColor === 'white') {
-        if (destination[2] - origin[2] === 2 || destination[2] - origin[2] === 1) {
-          return 'p';
-        }
-      }
-      else if (destLetter - origLetter === 0 && pawnColor === 'black') {
-        if (destination[2] - origin[2] === -2 || destination[2] - origin[2] === -1) {
-          return 'p';
-        }
-      }
-    }
-  };
+  
 
   let the_piece = color + '-' + position[0];
   const Classes = classNames(classes[color], classes[the_piece]);

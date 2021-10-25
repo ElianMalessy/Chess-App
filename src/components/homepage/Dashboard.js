@@ -27,7 +27,7 @@ export default memo(function Dashboard() {
     }
   }
 
-  // 'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg --magnus carlsen pfp'
+  // 'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg' <-- magnus carlsen pfp
   const [profilePic, setProfilePic] = useState(
     'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png'
   );
@@ -66,7 +66,7 @@ export default memo(function Dashboard() {
 
   useEffect(
     () => {
-      const localProfilePic = localStorage.getItem('profile-pic');
+      const localProfilePic = localStorage.getItem('profile-pic'); // get rid of this shit
       const storage = getStorage();
 
       if (localProfilePic) {
@@ -75,19 +75,21 @@ export default memo(function Dashboard() {
         return;
       }
       else {
-        getDownloadURL(ref(storage, `profile-pictures/${currentUser.email}.jpg`))
-          .then((url) => {
-            setProfilePic(url);
-          })
-          .catch((error) => {
-            const img =
-              'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png';
-            setProfilePic(img);
-            toDataURL(img).then((dataUrl) => {
-              const fileData = dataURLtoFile(dataUrl, `${currentUser.email}.jpg`);
-              changeProfilePic(fileData);
+        if (currentUser) {
+          getDownloadURL(ref(storage, `profile-pictures/${currentUser.email}.jpg`))
+            .then((url) => {
+              setProfilePic(url);
+            })
+            .catch((error) => {
+              const img =
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png';
+              setProfilePic(img);
+              toDataURL(img).then((dataUrl) => {
+                const fileData = dataURLtoFile(dataUrl, `${currentUser.email}.jpg`);
+                changeProfilePic(fileData);
+              });
             });
-          });
+        }
       }
     },
     // eslint-disable-next-line
@@ -119,6 +121,7 @@ export default memo(function Dashboard() {
         setProfilePic={setProfilePic}
       />
       <header className={classes.header}>
+        <Nav>
         <div className={classes.logo}>
           <Image
             src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUZZloLNz2F11mD77ey5TLZezGlFueOWuFqw&usqp=CAU'
@@ -141,7 +144,7 @@ export default memo(function Dashboard() {
             </Link>
           </li>
         </ul>
-
+        </Nav>
         <Nav className={classes.profileNav}>
           <div
             className='d-flex align-items-center justify-content-center'
