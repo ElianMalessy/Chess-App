@@ -126,7 +126,7 @@ function Board({ currentUser }) {
           kingPos = $('span[id^=k][class*=bl]')[0];
           oppKingPos = $('span[id^=k][class*=wh]')[0];
         }
-        findPossibleMoves(checkPiece, turn, oppKingPos, kingPos); // only use for determining checkmate and possible moves if there is a check
+        findPossibleMoves(checkPiece, oppKingPos, kingPos); // only use for determining checkmate and possible moves if there is a check
       }
     },
     [turn, checkPiece]

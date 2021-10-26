@@ -11,9 +11,6 @@ export default memo(function PieceMemo({ color, position }) {
   const { setPiece } = useContext(CapturedPieces);
   const playerColor = useContext(PlayerContext);
 
-  
-  
-
   function drag(me) {
     const move = $(me.target);
     const rect = document.elementFromPoint(me.pageX, me.pageY).getBoundingClientRect();
@@ -72,17 +69,19 @@ export default memo(function PieceMemo({ color, position }) {
         }
         else if (
           capturedPiece &&
-          $('#' + capturedPiece.id).attr('color') !== me.target.getAttribute('color') && // pieces of the same color cannot capture each other
-          func !== 'p' // a pawn move forward cannot capture a piece
+          $('#' + capturedPiece.id).attr('color') !== me.target.getAttribute('color') &&
+          func !== 'p' // pieces of the same color cannot capture each other. A pawn move forward cannot capture a piece
         ) {
           setPiece($('#' + capturedPiece.id)[0]);
           $('#' + capturedPiece.id).css('opacity', 0);
-          $('#' + capturedPiece.id).remove();
+          $('#' + capturedPiece.id).remove()
 
           let destination2 = document.elementFromPoint(me.pageX, me.pageY);
-          $(finalPosition).appendTo('#' + destination2.id);
+          console.log($('#' + finalPosition), $('#' + destination2.id));
+          $('#' + finalPosition).appendTo('#' + destination2.id);
           endLocation.push(original_id, finalPosition);
           const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
+
           if (check1) {
             endLocation.push(check1[0]);
           }
@@ -92,6 +91,7 @@ export default memo(function PieceMemo({ color, position }) {
           $('#' + finalPosition).appendTo('#' + destinationSquare);
           endLocation.push(original_id, finalPosition);
           const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(blackKingPos.id);
+
           if (check1) {
             endLocation.push(check1[0]);
           }
@@ -105,14 +105,11 @@ export default memo(function PieceMemo({ color, position }) {
     moving_piece.data('lastTransform', { dx: 0, dy: 0 });
     if (moved) {
       // when this player has made a move, broadcast that to the other player
-      console.log(endLocation);
       if (endLocation[0] === undefined || endLocation[1] === undefined) return;
 
       turn === 'white' ? setTurn(['black', ...endLocation]) : setTurn(['white', ...endLocation]);
     }
   }
-
-  
 
   let the_piece = color + '-' + position[0];
   const Classes = classNames(classes[color], classes[the_piece]);

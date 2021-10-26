@@ -101,7 +101,7 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
                     <Form.Control
                       type='url'
                       placeholder='e.g, https://images.chesscomfiles.com/uploads/picture.png'
-                      onChange={submitUrl} // need to allow cors, very few images work so i guess set up a server smh
+                      onChange={submitUrl}
                     />
                   </Form.Group>
 

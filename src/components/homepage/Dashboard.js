@@ -1,5 +1,5 @@
 /* eslint-disable default-case */
-import { useState, useRef, useEffect, Fragment, memo } from 'react';
+import { useState, useRef, useEffect, Fragment, memo, useCallback } from 'react';
 import { Alert, Image, Container, Nav, Button, Row } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
@@ -12,7 +12,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 export default memo(function Dashboard() {
   const [error, setError] = useState('');
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, updateProfilePic } = useAuth();
   const history = useHistory();
   const randomURL = useRef(Math.floor(Math.random() * 100 + 1));
 
@@ -31,51 +31,48 @@ export default memo(function Dashboard() {
   const [profilePic, setProfilePic] = useState(
     'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png'
   );
-
   const [hidden, setHidden] = useState(true);
   const [inputField, setInputField] = useState(false);
-  function changeProfilePic(file) {
-    const storage = getStorage();
-    const uploadTask = uploadBytesResumable(ref(storage, `profile-pictures/${currentUser.email}.jpg`), file);
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        // Observe state change events such as progress, pause, and resume
-        // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-        const progress = snapshot.bytesTransferred / snapshot.totalBytes * 100;
-        console.log('Upload is ' + progress + '% done');
-        switch (snapshot.state) {
-          case 'paused':
-            console.log('Upload is paused');
-            break;
-          case 'running':
-            console.log('Upload is running');
-            break;
+
+  const changeProfilePic = useCallback(
+    (file) => {
+      const storage = getStorage();
+      const uploadTask = uploadBytesResumable(ref(storage, `profile-pictures/${currentUser.email}.jpg`), file);
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          // Observe state change events such as progress, pause, and resume
+          // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+          const progress = snapshot.bytesTransferred / snapshot.totalBytes * 100;
+          console.log('Upload is ' + progress + '% done');
+          switch (snapshot.state) {
+            case 'paused':
+              console.log('Upload is paused');
+              break;
+            case 'running':
+              console.log('Upload is running');
+              break;
+          }
+        },
+        (error) => {
+          console.log(error);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            updateProfilePic(downloadURL);
+          });
         }
-      },
-      (error) => {
-        console.log(error);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          localStorage.setItem('profile-pic', downloadURL);
-        });
-      }
-    );
-  }
+      );
+    },
+    [currentUser, updateProfilePic]
+  );
 
   useEffect(
     () => {
-      const localProfilePic = localStorage.getItem('profile-pic'); // get rid of this shit
       const storage = getStorage();
-
-      if (localProfilePic) {
-        console.log(localProfilePic);
-        setProfilePic(localProfilePic);
-        return;
-      }
-      else {
-        if (currentUser) {
+      if (currentUser) {
+        if (currentUser.photoURL) setProfilePic(currentUser.photoURL);
+        else {
           getDownloadURL(ref(storage, `profile-pictures/${currentUser.email}.jpg`))
             .then((url) => {
               setProfilePic(url);
@@ -92,9 +89,9 @@ export default memo(function Dashboard() {
         }
       }
     },
-    // eslint-disable-next-line
-    [currentUser]
+    [currentUser, changeProfilePic]
   );
+
   const clickRef = useRef();
   useEffect(
     () => {
@@ -122,28 +119,28 @@ export default memo(function Dashboard() {
       />
       <header className={classes.header}>
         <Nav>
-        <div className={classes.logo}>
-          <Image
-            src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUZZloLNz2F11mD77ey5TLZezGlFueOWuFqw&usqp=CAU'
-            alt='logo'
-            className={classes.logoImage}
-            onClick={() => history.push('/development')}
-            roundedCircle
-          />
-          WeChess
-        </div>
-        <ul>
-          <li>
-            <Link to='/Game/1' className={`h-50 ${classes.headerLink}`}>
-              Testing
-            </Link>
-          </li>
-          <li>
-            <Link to={`/Game/${randomURL.current}`} className={`h-50 ${classes.headerLink}`}>
-              Play
-            </Link>
-          </li>
-        </ul>
+          <div className={classes.logo}>
+            <Image
+              src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUZZloLNz2F11mD77ey5TLZezGlFueOWuFqw&usqp=CAU'
+              alt='logo'
+              className={classes.logoImage}
+              onClick={() => history.push('/development')}
+              roundedCircle
+            />
+            WeChess
+          </div>
+          <ul>
+            <li>
+              <Link to='/Game/1' className={`h-50 ${classes.headerLink}`}>
+                Testing
+              </Link>
+            </li>
+            <li>
+              <Link to={`/Game/${randomURL.current}`} className={`h-50 ${classes.headerLink}`}>
+                Play
+              </Link>
+            </li>
+          </ul>
         </Nav>
         <Nav className={classes.profileNav}>
           <div
@@ -171,36 +168,24 @@ export default memo(function Dashboard() {
               style={{ boxShadow: 'none' }}
             >
               <pre>
-                <strong>Email: </strong>
-                {currentUser && currentUser.email ? (
+                {currentUser && currentUser.displayName ? (
+                  currentUser.displayName
+                ) : currentUser && currentUser.email ? (
                   currentUser.email
-                ) : currentUser && currentUser.uid ? (
-                  currentUser.uid
                 ) : (
                   'loading...'
                 )}
+                <i className='fa fa-chevron-down' style={{ marginLeft: '0.5rem' }} aria-hidden='true' />
               </pre>
-              <div className='position-absolute mb-1' style={{ width: '69.25%', textAlign: 'right' }}>
-                <i className='fa fa-chevron-down' aria-hidden='true' />
+              <div hidden={hidden} className={classes.dropDownMenu}>
+                <Link to='/update-profile' className={classes['dropdown-item']}>
+                  <i className='fa fa-user-circle-o' aria-hidden='true' /> Update Profile
+                </Link>
+                <Link to='#' className={classes['dropdown-item']} onClick={handleLogout}>
+                  <i className='fa fa-sign-out' aria-hidden='true' /> Logout
+                </Link>
               </div>
             </Button>
-            <div hidden={hidden} className={classes.dropDownMenu}>
-              <Link to='/update-profile' className={classes['dropdown-item']}>
-                <i className='fa fa-user-circle-o' aria-hidden='true' /> Update Profile
-              </Link>
-              <Link to='/' className={classes['dropdown-item']}>
-                <i className='fa fa-user-plus' aria-hidden='true' /> Add Friend
-              </Link>
-              <Link to='/' className={classes['dropdown-item']}>
-                <i className='fa fa-users' aria-hidden='true' /> Friends
-              </Link>
-              <Link to='/forgot-password' className={classes['dropdown-item']}>
-                <i className='fa fa-key' aria-hidden='true' /> Change Password
-              </Link>
-              <Link to='#' className={classes['dropdown-item']} onClick={handleLogout}>
-                <i className='fa fa-sign-out' aria-hidden='true' /> Logout
-              </Link>
-            </div>
           </div>
         </Nav>
       </header>
@@ -216,15 +201,15 @@ export default memo(function Dashboard() {
               value={'localhost:3000/Game/' + randomURL.current}
               className={classes.linkInput}
             />
-            <button
-              className={`btn btn-primary ${classes.roundedCirc}`}
+            <Button
+              className={classes.roundedCirc}
               onClick={() => {
                 navigator.clipboard.writeText('localhost:3000/Game/' + randomURL.current);
                 alert('Copied to clipboard');
               }}
             >
               <i className='fa fa-link' />
-            </button>
+            </Button>
           </Row>
         </div>
       </Container>

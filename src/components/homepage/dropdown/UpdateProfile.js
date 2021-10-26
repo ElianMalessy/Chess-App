@@ -4,10 +4,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
 
 export default function UpdateProfile() {
-  const emailRef = useRef();
+  const userNameRef = useRef();
   const passwordRef = useRef();
   const passwordConfirmRef = useRef();
-  const { currentUser, updatePassword, updateEmail } = useAuth();
+  const { currentUser, updatePassword, updateUsername } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const history = useHistory();
@@ -22,8 +22,8 @@ export default function UpdateProfile() {
     setLoading(true);
     setError('');
 
-    if (emailRef.current.value !== currentUser.email) {
-      promises.push(updateEmail(emailRef.current.value));
+    if (userNameRef.current.value !== currentUser.email) {
+      promises.push(updateUsername(userNameRef.current.value));
     }
     if (passwordRef.current.value) {
       promises.push(updatePassword(passwordRef.current.value));
@@ -33,7 +33,8 @@ export default function UpdateProfile() {
       .then(() => {
         history.push('/');
       })
-      .catch(() => {
+      .catch((error) => {
+        console.log(error)
         setError('Failed to update account');
       })
       .finally(() => {
@@ -49,8 +50,13 @@ export default function UpdateProfile() {
           {error && <Alert variant='danger'>{error}</Alert>}
           <Form onSubmit={handleSubmit}>
             <Form.Group id='email'>
-              <Form.Label>Email</Form.Label>
-              <Form.Control type='email' ref={emailRef} required defaultValue={currentUser.email} />
+              <Form.Label>Username</Form.Label>
+              <Form.Control
+                type='text'
+                ref={userNameRef}
+                required
+                defaultValue={currentUser.displayName ? currentUser.displayName : currentUser.email}
+              />
             </Form.Group>
             <Form.Group id='password'>
               <Form.Label>Password</Form.Label>

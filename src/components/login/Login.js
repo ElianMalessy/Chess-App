@@ -3,7 +3,7 @@ import { Form, Button, Card, Alert, Container } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
 import Background from './Background';
-import classes from './Login.module.css'
+import classes from './Login.module.css';
 
 export default function Login() {
   const emailRef = useRef();
@@ -40,7 +40,7 @@ export default function Login() {
   }
   return (
     <Fragment>
-			<div className={classes.background_div}>
+      <div className={classes.background_div}>
         <Background />
       </div>
       <Container
@@ -72,7 +72,9 @@ export default function Login() {
                 </Button>
               </Form>
               <div className='w-100 text-center mt-3'>
-                <Link to='/forgot-password'>Forgot Password?</Link>
+                <Link to='/forgot-password'>
+                  Forgot Password? <i className='fa fa-key' aria-hidden='true' />
+                </Link>
               </div>
             </Card.Body>
           </Card>

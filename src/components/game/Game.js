@@ -301,15 +301,13 @@ export default function Game(props) {
       }
     });
   });
-  
+
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');
     onValue(dbRef, (snapshot) => {
       // if the arrays dont match then the person who moved the piece is running this code, which is not wanted
       let newLocation = [turn[1], turn[2]];
-      console.log(newLocation, turn);
-      //snapshot.exists() && arraysMatch(snapshot.val(), newLocation) === false
-      if (snapshot.exists()) {
+      if (snapshot.exists() && arraysMatch(snapshot.val(), newLocation) === false) {
         if (setLastMoveFromOtherUser.current === false) setLastMoveFromOtherUser.current = true;
         else {
           newLocation = snapshot.val();
@@ -347,7 +345,7 @@ export default function Game(props) {
 
   const FENMemo = useMemo(
     () => {
-      console.log(FEN[FEN.length - 2] + FEN[FEN.length - 1]);
+      console.log(FEN[FEN.length - 2] + FEN[FEN.length - 1]); // enPassent Position
       return { FEN: FEN[FEN.length - 2] + FEN[FEN.length - 1] };
     },
     [FEN]

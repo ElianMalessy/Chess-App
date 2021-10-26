@@ -8,8 +8,8 @@ export default function findPossibleMoves(checkingPieces, color, oppKingPos, kin
   const possibleMoves = [];
   let pieces =
     $('#' + kingPos).attr('color')[0] === 'w'
-      ? $('span[class*=wh][id!=capturedPiece]')
-      : $('span[class*=bl][id!=capturedPiece]');
+      ? $('span[class*=white]')
+      : $('span[class*=black]');
 
   const piecesArray = [...pieces.id]; // dont know if this works
   const tempPossibleSquares = new Set();
@@ -35,20 +35,21 @@ export default function findPossibleMoves(checkingPieces, color, oppKingPos, kin
       }
     });
   });
+  console.log(possibleMoves)
+  return possibleMoves;
 }
 
 export function isCheck(kingPos) {
   let pieces =
     $('#' + kingPos).attr('color')[0] === 'b'
-      ? $('span[class*=wh][id!=capturedPiece]')
-      : $('span[class*=bl][id!=capturedPiece]'); //select all of the pieces except for the kings as they cant check each other
+      ? $('span[class*=white]')
+      : $('span[class*=black]'); //select all of the pieces except for the kings as they cant check each other
   // checks if the move is legal by putting in the destination and looking for checks before actually appending to new square
   const potential_check_pieces = [...pieces];
   const checking_pieces = [];
   potential_check_pieces.forEach((piece) => {
     if (moveFunctions[piece.id[0]]('S' + kingPos[1] + kingPos[2], piece.id)) checking_pieces.push(piece.id); // if a piece is attacking a king
   });
-  console.log(checking_pieces);
   return checking_pieces.length > 0 ? checking_pieces : false;
 }
 
@@ -85,7 +86,6 @@ function movePiecesVertLat(destination, origin) {
   if (destLetter - origLetter > 0) {
     for (let i = 1; i < destLetter - origLetter; i++) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
-      console.log(str);
       arrayOfAttack.push(str);
       if ($('[id$=' + str).length !== 1) return false;
     }
@@ -93,7 +93,6 @@ function movePiecesVertLat(destination, origin) {
   else if (destLetter - origLetter < 0) {
     for (let i = -1; i > destLetter - origLetter; i--) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
-      console.log(str);
       arrayOfAttack.push(str);
       if ($('[id$=' + str).length !== 1) return false;
     }
@@ -150,7 +149,6 @@ export const moveFunctions = {
   q: function canMoveQueen(destination, origin) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
-    console.log(origin);
     if ((destLetter === origLetter || destination[2] === origin[2]) && movePiecesVertLat(destination, origin))
       return true;
     else if (
