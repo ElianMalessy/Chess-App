@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, useRef, memo } from 'react';
 import classes from './Board.module.css';
 import PieceMemo from './Piece';
 import { PlayerContext, CheckContext, TurnContext } from './Game';
-import $ from 'jquery'
+import $ from 'jquery';
 import findPossibleMoves from './moveFunctions';
 
 function Board({ currentUser }) {
@@ -116,17 +116,17 @@ function Board({ currentUser }) {
   );
   useEffect(
     () => {
+      console.log(checkPiece);
       if (checkPiece) {
-        let oppKingPos, kingPos;
+        let kingPos;
         if (turn[0] === 'w') {
-          oppKingPos = $('span[id^=k][class*=bl]')[0];
-          kingPos = $('span[id^=k][class*=wh]')[0];
+          kingPos = $('[id^=k][class*=white]');
         }
         else {
-          kingPos = $('span[id^=k][class*=bl]')[0];
-          oppKingPos = $('span[id^=k][class*=wh]')[0];
+          kingPos = $('[id^=k][class*=black]');
         }
-        findPossibleMoves(checkPiece, oppKingPos, kingPos); // only use for determining checkmate and possible moves if there is a check
+        console.log(kingPos);
+        findPossibleMoves(checkPiece, kingPos); // only use for determining checkmate and possible moves if there is a check
       }
     },
     [turn, checkPiece]

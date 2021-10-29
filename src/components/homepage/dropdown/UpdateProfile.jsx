@@ -34,7 +34,7 @@ export default function UpdateProfile() {
         history.push('/');
       })
       .catch((error) => {
-        console.log(error)
+        console.log(error);
         setError('Failed to update account');
       })
       .finally(() => {
@@ -55,7 +55,16 @@ export default function UpdateProfile() {
                 type='text'
                 ref={userNameRef}
                 required
-                defaultValue={currentUser.displayName ? currentUser.displayName : currentUser.email}
+                defaultValue={
+                  currentUser.displayName ? (
+                    currentUser.displayName
+                  ) : currentUser.email ? (
+                    currentUser.email
+                  ) : (
+                    'anonymous'
+                  )
+                }
+                maxLength='20'
               />
             </Form.Group>
             <Form.Group id='password'>

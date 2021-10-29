@@ -11,17 +11,17 @@ export default memo(function PieceMemo({ color, position }) {
   const { setPiece } = useContext(CapturedPieces);
   const playerColor = useContext(PlayerContext);
 
-  function drag(me) {
-    const move = $(me.target);
-    const rect = document.elementFromPoint(me.pageX, me.pageY).getBoundingClientRect();
+  function drag(mouse) {
+    const move = $(mouse.target);
+    const rect = document.elementFromPoint(mouse.pageX, mouse.pageY).getBoundingClientRect();
     move.css('z-index', 10);
 
     let lastOffset = move.data('lastTransform');
     let lastOffsetX = lastOffset ? lastOffset.dx : 0,
       lastOffsetY = lastOffset ? lastOffset.dy : 0;
 
-    let startX = me.pageX - lastOffsetX,
-      startY = me.pageY - lastOffsetY;
+    let startX = mouse.pageX - lastOffsetX,
+      startY = mouse.pageY - lastOffsetY;
 
     var x_centered = startX - (rect.left + 35);
     var y_centered = startY - (rect.top + 35);
@@ -40,18 +40,18 @@ export default memo(function PieceMemo({ color, position }) {
   // change id of moving piece to "NaN" and pretend as if its in its moved position on the destination square
   // do this while checking for attacks on ones on king (during ones own turn) but not while checking for attacks on the opponents king
   // at that time you shouldve already switched the id from NaN to the destination position and put it in the destination square on the DOM
-  function endDrag(me) {
-    let moving_piece = $(me.target);
-    const original_id = me.target.id;
+  function endDrag(mouse) {
+    let moving_piece = $(mouse.target);
+    const original_id = mouse.target.id;
     moving_piece.css('z-index', -100);
 
-    let destinationSquare = document.elementFromPoint(me.pageX, me.pageY).id;
+    let destinationSquare = document.elementFromPoint(mouse.pageX, mouse.pageY).id;
     if (destinationSquare && !(destinationSquare[1] === original_id[1] && destinationSquare[2] === original_id[2])) {
       // if same square as original, then end
       let func = moveFunctions[original_id[0]](destinationSquare, original_id);
       if (func) {
-        let whiteKingPos = $('[id^=k][class*=wh]')[0];
-        let blackKingPos = $('[id^=k][class*=bl]')[0];
+        let whiteKingPos = $('[id^=k][class*=white]')[0];
+        let blackKingPos = $('[id^=k][class*=black]')[0];
 
         var endLocation = [];
         let capturedPiece = $('#' + destinationSquare)[0].firstChild;
@@ -64,36 +64,38 @@ export default memo(function PieceMemo({ color, position }) {
         if (check) {
           // if the move causes a discovered check to ones own king, then it is not a legal move
           // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
+          console.log('isCheck');
           $(finalPosition).attr('id', original_id);
           moved = false;
         }
         else if (
           capturedPiece &&
-          $('#' + capturedPiece.id).attr('color') !== me.target.getAttribute('color') &&
+          $('#' + capturedPiece.id).attr('color') !== mouse.target.getAttribute('color') &&
           func !== 'p' // pieces of the same color cannot capture each other. A pawn move forward cannot capture a piece
         ) {
           setPiece($('#' + capturedPiece.id)[0]);
           $('#' + capturedPiece.id).css('opacity', 0);
-          $('#' + capturedPiece.id).remove()
+          $('#' + capturedPiece.id).remove();
 
-          let destination2 = document.elementFromPoint(me.pageX, me.pageY);
-          console.log($('#' + finalPosition), $('#' + destination2.id));
+          let destination2 = document.elementFromPoint(mouse.pageX, mouse.pageY);
           $('#' + finalPosition).appendTo('#' + destination2.id);
           endLocation.push(original_id, finalPosition);
-          const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
 
+          const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
+          console.log(check1);
           if (check1) {
-            endLocation.push(check1[0]);
+            endLocation.push(check1);
           }
         }
         else {
           moved = true;
           $('#' + finalPosition).appendTo('#' + destinationSquare);
           endLocation.push(original_id, finalPosition);
-          const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(blackKingPos.id);
 
+          const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
+          console.log(check1);
           if (check1) {
-            endLocation.push(check1[0]);
+            endLocation.push(check1);
           }
           //console.log(check1, turn === 'white' ? kingPos2.id : kingPos.id);
         }

@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   updatePassword,
   deleteUser,
-	updateProfile
+  updateProfile
 } from 'firebase/auth';
 
 const AuthContext = createContext();
@@ -45,15 +45,17 @@ export function AuthProvider({ children }) {
   function updateUserPassword(password) {
     return updatePassword(auth, password);
   }
-	function updateUsername(username) {
-    return updateProfile(auth.currentUser, {displayName: username})
+
+  function updateUsername(username) {
+    return updateProfile(currentUser, { displayName: username });
   }
-	function updateProfilePic(profilePic) {
-		return updateProfile(auth.currentUser, {photoURL: profilePic})
-	}
+  
+  function updateProfilePic(profilePic) {
+    return updateProfile(currentUser, { photoURL: profilePic });
+  }
 
   function deleteCurrentUser() {
-    return deleteUser(auth.currentUser);
+    return deleteUser(currentUser);
   }
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -73,7 +75,7 @@ export function AuthProvider({ children }) {
     resetPassword,
     updateUserPassword,
     deleteCurrentUser,
-		updateUsername,
+    updateUsername,
     updateProfilePic
   };
 

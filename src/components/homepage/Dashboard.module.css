@@ -55,7 +55,7 @@
 .bg {
   min-height: 100vh;
   min-width: 100vw;
-  background-image: url('https://i.imgur.com/yyEEvUf.jpeg');
+  background-color: #1a1a1a;
   background-repeat: no-repeat;
   background-size: cover;
 }
@@ -71,10 +71,10 @@
 }
 
 a {
-  text-decoration: none;
+  text-decoration: none !important;
 }
 a:hover {
-  color: rgb(255, 255, 255);
+  color: rgb(255, 255, 255) !important;
 }
 .dropDownMenu {
   background-color: hsl(0, 0%, 6%);
@@ -118,10 +118,10 @@ a:hover {
   text-align: left;
 }
 .roundedCirc {
-  height: 4rem;
-  width: 4rem;
-  font-size: 2rem;
-  border-radius: 50%;
-  transform: translate(24rem, 0);
+  height: 4rem !important;
+  width: 4rem !important;
+  font-size: 2rem !important;
+  border-radius: 50% !important;
+  transform: translate(24.75rem, 0);
   position: absolute;
 }

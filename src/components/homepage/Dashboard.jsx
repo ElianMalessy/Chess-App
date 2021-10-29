@@ -37,7 +37,7 @@ export default memo(function Dashboard() {
   const changeProfilePic = useCallback(
     (file) => {
       const storage = getStorage();
-      const uploadTask = uploadBytesResumable(ref(storage, `profile-pictures/${currentUser.email}.jpg`), file);
+      const uploadTask = uploadBytesResumable(ref(storage, `profile-pictures/${currentUser.uid}.jpg`), file);
       uploadTask.on(
         'state_changed',
         (snapshot) => {
@@ -70,10 +70,11 @@ export default memo(function Dashboard() {
   useEffect(
     () => {
       const storage = getStorage();
+
       if (currentUser) {
         if (currentUser.photoURL) setProfilePic(currentUser.photoURL);
         else {
-          getDownloadURL(ref(storage, `profile-pictures/${currentUser.email}.jpg`))
+          getDownloadURL(ref(storage, `profile-pictures/${currentUser.uid}.jpg`))
             .then((url) => {
               setProfilePic(url);
             })
@@ -82,7 +83,7 @@ export default memo(function Dashboard() {
                 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png';
               setProfilePic(img);
               toDataURL(img).then((dataUrl) => {
-                const fileData = dataURLtoFile(dataUrl, `${currentUser.email}.jpg`);
+                const fileData = dataURLtoFile(dataUrl, `${currentUser.uid}.jpg`);
                 changeProfilePic(fileData);
               });
             });
@@ -173,7 +174,7 @@ export default memo(function Dashboard() {
                 ) : currentUser && currentUser.email ? (
                   currentUser.email
                 ) : (
-                  'loading...'
+                  'anonymous'
                 )}
                 <i className='fa fa-chevron-down' style={{ marginLeft: '0.5rem' }} aria-hidden='true' />
               </pre>

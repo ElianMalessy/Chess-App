@@ -8,8 +8,8 @@ import { ref, update, set, get, onValue, off } from '@firebase/database';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const PlayerContext = createContext();
-export const TurnContext = createContext({ col: ['white', 'pe2', 'pe4'], setCol: () => {} });
-export const FenContext = createContext();
+export const TurnContext = createContext({ turn: ['white', 'pe2', 'pe4'], setTurn: () => {} });
+export const EnPassentContext = createContext();
 export const CheckContext = createContext();
 
 export default function Game(props) {
@@ -42,18 +42,13 @@ export default function Game(props) {
   let path = props.location.pathname;
   const gameID = useRef(path.substring(path.lastIndexOf('/') + 1));
 
-  function getWhiteEmail() {
-    for (var i = 0, len = localStorage.length; i < len; i++) {
-      let key = localStorage.key(i);
-      if (localStorage[key] === 'white') {
-        return localStorage.key(i);
-      }
-    }
-  }
   const { currentUser } = useAuth();
   const currentUserID = useRef();
-  if (currentUser) currentUserID.current = currentUser.email;
-  else currentUserID.current = getWhiteEmail();
+  if (currentUser) currentUserID.current = currentUser.uid;
+  else {
+    console.error('ID not present');
+    currentUserID.current = 'temporaryID';
+  }
 
   const setUpTurnChange = useRef(false);
   const fixBoardArray = useCallback((FEN) => {
@@ -202,11 +197,11 @@ export default function Game(props) {
       if (turn.length === 5) {
         return;
       }
+
       let newLocation = [turn[1], turn[2]];
       setLastMoveFromOtherUser.current = false;
       setLastMoveFromOtherUser1.current = false; // the person who moved the piece is the one doing this so they shouldnt listen to database changes
 
-      console.log(board.current);
       let column = newLocation[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
       let row = parseInt(newLocation[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
       let piece = board.current[7 - row][column];
@@ -343,10 +338,10 @@ export default function Game(props) {
     [turn]
   );
 
-  const FENMemo = useMemo(
+  const enPassentSquare = useMemo(
     () => {
-      console.log(FEN[FEN.length - 2] + FEN[FEN.length - 1]); // enPassent Position
-      return { FEN: FEN[FEN.length - 2] + FEN[FEN.length - 1] };
+      return FEN[FEN.length - 2] + FEN[FEN.length - 1];
+      // enPassent Position
     },
     [FEN]
   );
@@ -358,11 +353,11 @@ export default function Game(props) {
       <PlayerContext.Provider value={playerColor}>
         <CapturedPanel>
           <TurnContext.Provider value={turnValue}>
-            <FenContext.Provider value={FENMemo}>
+            <EnPassentContext.Provider value={enPassentSquare}>
               <CheckContext.Provider value={check}>
                 <BoardMemo currentUser={currentUserID.current} FEN={FEN} />
               </CheckContext.Provider>
-            </FenContext.Provider>
+            </EnPassentContext.Provider>
           </TurnContext.Provider>
         </CapturedPanel>
       </PlayerContext.Provider>
