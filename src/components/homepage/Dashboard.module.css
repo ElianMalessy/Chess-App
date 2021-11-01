@@ -1,9 +1,7 @@
 @import-normalize;
 @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&display=swap');
 
-::-webkit-scrollbar {
-  display: none;
-}
+
 
 .header {
   width: 100%;

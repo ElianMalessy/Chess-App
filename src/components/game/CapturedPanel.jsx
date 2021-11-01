@@ -5,7 +5,7 @@ import $ from 'jquery';
 
 export const CapturedPieces = createContext({ pieces: null, setPiece: () => {} });
 
-export default function CapturedPanel(props) {
+export default function CapturedPanel({ children }) {
   const [num, setNum] = useState(0);
   const [piece, setPiece] = useState(null);
   const value = { piece, setPiece };
@@ -37,8 +37,8 @@ export default function CapturedPanel(props) {
   return (
     <div>
       <CapturedPieces.Provider value={value}>
-        {props.children}
-        <Card className='w-100' style={{ maxWidth: 800, backgroundColor: '#0a0a0a9a' }}>
+        {children}
+        <Card className='w-100' style={{ maxWidth: '35em', backgroundColor: '#0a0a0a9a' }}>
           <div className={classes['captured-bg']}>{all_pieces}</div>
         </Card>
       </CapturedPieces.Provider>

@@ -1,54 +1,51 @@
 import $ from 'jquery';
-export default function findPossibleMoves(checkingPieces, kingPos) {
+export default function findPossibleMoves(checkingPieces, yourKing) {
   // if there are checking pieces, then that means that the move that this player makes has to block those checking pieces
   // use isCheck on all of the possibilities, if its a bishop for example, that means that the move either has to be the king moving out of the way
   // (that can be true for all of them, as long as that next position doesnt return a true in isCheck()), or it can be a piece moving into that diag
   // if there are no possible moves to stop isCheck() as in it always returns true, then it is checkmate and the game ends
-
+  console.log(yourKing);
+  
   const possibleMoves = [];
-  let pieces = kingPos.attr('color')[0] === 'w' ? $('span[class*=white]') : $('span[class*=black]');
+  let pieces = yourKing.attr('color')[0] === 'w' ? $('span[class*=white]') : $('span[class*=black]');
 
   const piecesArray = [...pieces]; // dont know if this works
   const tempPossibleSquares = new Set();
-  console.log(kingPos);
+
   checkingPieces.forEach((checkingPiece) => {
-    const checkingPiecePosition = checkingPiece[1] + checkingPiece[2];
-    console.log(checkingPiecePosition, kingPos.attr('id'));
+    console.log(checkingPiece, yourKing.attr('id'));
     if (
-      (checkingPiece[0].toLowerCase() === 'q' && checkingPiece[1] !== kingPos.attr('id')[1]) ||
+      (checkingPiece[0].toLowerCase() === 'q' && checkingPiece[1] !== yourKing.attr('id')[1]) ||
       checkingPiece[0] === 'b'
     ) {
-      let square = movePiecesDiag(checkingPiecePosition, kingPos.attr('id'));
-      console.log(square);
+      let square = movePiecesDiag(checkingPiece, yourKing.attr('id'));
+      //console.log(square);
       if (square) tempPossibleSquares.add(square); // needs fix
     }
     else if (checkingPiece[0].toLowerCase() === 'r' || checkingPiece[0].toLowerCase() === 'q') {
-      let square = movePiecesVertLat(checkingPiecePosition, kingPos.attr('id'));
-      console.log(square)
-      if(square) tempPossibleSquares.add(square);
+      let square = movePiecesVertLat(checkingPiece, yourKing.attr('id'));
+      //console.log(square);
+      if (square) tempPossibleSquares.add(square);
     }
-    tempPossibleSquares.add(checkingPiecePosition); // can capture the checking piece to stop the check
+    tempPossibleSquares.add(checkingPiece); // can capture the checking piece to stop the check
+    // if the piece is a pawn or a knight, the only way to get unchecked is to move out of the way or to capture them
   });
-  console.log(tempPossibleSquares);
-  // if the piece is a pawn or a knight, the only way to get unchecked is to move out of the way or to capture them
   piecesArray.forEach((piece) => {
     // if a piece going to this square triggers a discovered check, then dont put this into possible moves
     // since you have the possible squares in which the pieces must go into to protect the king, the next step is to check every piece and see if
     // they can move to protect the king, (not including the king)
     tempPossibleSquares.forEach((square) => {
-      console.log(piece);
       if (moveFunctions[piece.id[0]](square, piece.id[1] + piece.id[2])) {
         possibleMoves.push(piece.id, square);
       }
     });
   });
   console.log(possibleMoves);
-  return possibleMoves;
+  return tempPossibleSquares;
 }
 
 export function isCheck(kingPos) {
   let pieces = $('#' + kingPos).attr('color')[0] === 'b' ? $('span[class*=white]') : $('span[class*=black]'); //select all of the pieces except for the kings as they cant check each other
-  console.log(pieces, kingPos);
   // checks if the move is legal by putting in the destination and looking for checks before actually appending to new square
   const potential_check_pieces = [...pieces];
   const checking_pieces = [];
@@ -83,12 +80,10 @@ function movePiecesDiag(destination, origin) {
       if ($('[id$=' + str).length !== 1) return false;
     }
   }
-  console.log(arrayOfAttack, destination, origin);
   return arrayOfAttack;
 }
 
 function movePiecesVertLat(destination, origin) {
-  console.log(destination, origin);
   let destLetter = destination[1].charCodeAt(0);
   let origLetter = origin[1].charCodeAt(0);
   const arrayOfAttack = [];
@@ -98,7 +93,6 @@ function movePiecesVertLat(destination, origin) {
     // distance = 1 means nothing can be in the way
     for (let i = 1; i < destLetter - origLetter; i++) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
-      console.log(str);
       arrayOfAttack.push(str);
       if ($('[id$=' + str).length !== 1) return false;
     }
@@ -116,6 +110,7 @@ function movePiecesVertLat(destination, origin) {
       for (let i = 1; i < destination[2] - origin[2]; i++) {
         let num = parseInt(origin[2]) + i;
         let str = String.fromCharCode(origLetter) + num;
+
         arrayOfAttack.push(str);
         if ($('[id$=' + str).length !== 1) return false;
       }
@@ -124,11 +119,11 @@ function movePiecesVertLat(destination, origin) {
       for (let i = -1; i > destination[2] - origin[2]; i--) {
         let num = parseInt(origin[2]) + i;
         let str = String.fromCharCode(origLetter) + num;
+
         arrayOfAttack.push(str);
         if ($('[id$=' + str).length !== 1) return false;
       }
     }
-    console.log(arrayOfAttack, destination, origin);
     return arrayOfAttack;
   }
 }

@@ -49,12 +49,14 @@ export default memo(function PieceMemo({ color, position }) {
     if (destinationSquare && !(destinationSquare[1] === original_id[1] && destinationSquare[2] === original_id[2])) {
       // if same square as original, then end
       let func = moveFunctions[original_id[0]](destinationSquare, original_id);
+      console.log(func);
       if (func) {
         let whiteKingPos = $('[id^=k][class*=white]')[0];
         let blackKingPos = $('[id^=k][class*=black]')[0];
 
         var endLocation = [];
-        let capturedPiece = $('#' + destinationSquare)[0].firstChild;
+        let capturedPiece = $('#' + destinationSquare)[0];
+        console.log($('#' + destinationSquare), capturedPiece);
         const finalPosition = original_id[0] + destinationSquare[1] + destinationSquare[2];
 
         var moved = true;
@@ -70,7 +72,8 @@ export default memo(function PieceMemo({ color, position }) {
         }
         else if (
           capturedPiece &&
-          $('#' + capturedPiece.id).attr('color') !== mouse.target.getAttribute('color') &&
+          $('#' + capturedPiece.id).attr('color') !== moving_piece.attr('color') &&
+          capturedPiece.id[0] !== 'S' &&
           func !== 'p' // pieces of the same color cannot capture each other. A pawn move forward cannot capture a piece
         ) {
           setPiece($('#' + capturedPiece.id)[0]);
@@ -82,19 +85,19 @@ export default memo(function PieceMemo({ color, position }) {
           endLocation.push(original_id, finalPosition);
 
           const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
-          console.log(check1);
           if (check1) {
+            console.log(check1);
             endLocation.push(check1);
           }
         }
-        else {
+        else if (capturedPiece.id[0] === 'S') {
           moved = true;
           $('#' + finalPosition).appendTo('#' + destinationSquare);
           endLocation.push(original_id, finalPosition);
 
           const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
-          console.log(check1);
           if (check1) {
+            console.log(check1);
             endLocation.push(check1);
           }
           //console.log(check1, turn === 'white' ? kingPos2.id : kingPos.id);
@@ -108,7 +111,6 @@ export default memo(function PieceMemo({ color, position }) {
     if (moved) {
       // when this player has made a move, broadcast that to the other player
       if (endLocation[0] === undefined || endLocation[1] === undefined) return;
-
       turn === 'white' ? setTurn(['black', ...endLocation]) : setTurn(['white', ...endLocation]);
     }
   }
@@ -148,7 +150,7 @@ export default memo(function PieceMemo({ color, position }) {
         onMouseDown={drag}
         onMouseUp={endDrag}
         id={position}
-        style={{ pointerEvents: turn === color ? 'inherit' : 'none' }}
+        style={{ pointerEvents: 'none' }}
         color={color}
       />
     );

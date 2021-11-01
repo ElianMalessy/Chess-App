@@ -3,9 +3,12 @@ import classes from './Board.module.css';
 import { BoardMemo } from './Board';
 import $ from 'jquery';
 import CapturedPanel from './CapturedPanel';
+import Chat from './Chat';
+import RightPanel from './RightPanel';
 import { database } from '../../firebase';
 import { ref, update, set, get, onValue, off } from '@firebase/database';
 import { useAuth } from '../../contexts/AuthContext';
+import { Container, Row, Col } from 'react-bootstrap';
 
 export const PlayerContext = createContext();
 export const TurnContext = createContext({ turn: ['white', 'pe2', 'pe4'], setTurn: () => {} });
@@ -137,6 +140,7 @@ export default function Game(props) {
   }, []);
 
   // userHandler gets triggered on every load of the page
+  const [dbMessages, setDbMessages] = useState(null);
   useEffect(
     () => {
       userHandler(gameID.current, currentUserID.current, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
@@ -146,6 +150,8 @@ export default function Game(props) {
         await get(dbRef)
           .then((snapshot) => {
             if (snapshot.exists()) {
+              if (snapshot.val().messages) setDbMessages(snapshot.val().messages);
+
               let p1 = snapshot.val().player1;
               if (snapshot.val().player2 === undefined && pushVal !== p1) {
                 // new user, color = black
@@ -190,7 +196,6 @@ export default function Game(props) {
   );
 
   const setLastMoveFromOtherUser = useRef(true);
-  const setLastMoveFromOtherUser1 = useRef(true);
   useEffect(
     () => {
       // if turn is 'white' or 'black' then this is the wrong user/socket as it has no newLocation
@@ -200,7 +205,6 @@ export default function Game(props) {
 
       let newLocation = [turn[1], turn[2]];
       setLastMoveFromOtherUser.current = false;
-      setLastMoveFromOtherUser1.current = false; // the person who moved the piece is the one doing this so they shouldnt listen to database changes
 
       let column = newLocation[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
       let row = parseInt(newLocation[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
@@ -284,18 +288,25 @@ export default function Game(props) {
   });
 
   const [check, setCheck] = useState(null);
-  useEffect(() => {
-    const dbRef = ref(database, 'Games/' + gameID.current + '/check');
-    onValue(dbRef, (snapshot) => {
-      if (snapshot.exists()) {
-        if (setLastMoveFromOtherUser1.current === false) setLastMoveFromOtherUser1.current = true;
-        else {
-          setCheck(snapshot.val());
-          off(dbRef);
+  useEffect(
+    () => {
+      const dbRef = ref(database, 'Games/' + gameID.current + '/check');
+      onValue(dbRef, (snapshot) => {
+        if (snapshot.exists()) {
+          if (
+            ((snapshot.val()[0][0] === snapshot.val()[0][0].toLowerCase() && playerColor === 'black') ||
+              (snapshot.val()[0][0] === snapshot.val()[0][0].toUpperCase() && playerColor === 'white')) &&
+            (check === null || snapshot.val()[0] !== check[0])
+          ) {
+            console.log(playerColor);
+            setCheck(snapshot.val());
+            off(dbRef);
+          }
         }
-      }
-    });
-  });
+      });
+    }
+    //eslint-disable-next-line
+  );
 
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');
@@ -309,7 +320,7 @@ export default function Game(props) {
           let old_location = $('#' + newLocation[0]);
           if (old_location.length === 0) return;
 
-          let destination = $('[id*=' + newLocation[1][1] + newLocation[1][2] + ']')[0];
+          let destination = $('[id*=' + newLocation[1][1] + newLocation[1][2])[0];
           let capturedPiece = $('#' + destination.id)[0].firstChild;
           if (capturedPiece) $('#' + capturedPiece.id).remove();
 
@@ -347,20 +358,31 @@ export default function Game(props) {
   );
   return (
     <div className={classes['mainPage']} id='page'>
-      <div style={{ color: turn[0].length === 1 ? turn : turn[0], fontSize: 20 }}>
-        Turn: {turn[0].length === 1 ? turn : turn[0]}
-      </div>
-      <PlayerContext.Provider value={playerColor}>
-        <CapturedPanel>
-          <TurnContext.Provider value={turnValue}>
-            <EnPassentContext.Provider value={enPassentSquare}>
-              <CheckContext.Provider value={check}>
-                <BoardMemo currentUser={currentUserID.current} FEN={FEN} />
-              </CheckContext.Provider>
-            </EnPassentContext.Provider>
-          </TurnContext.Provider>
-        </CapturedPanel>
-      </PlayerContext.Provider>
+      <Container>
+        <Row>
+          <PlayerContext.Provider value={playerColor}>
+            <Col>
+              <Chat dbMessages={dbMessages} />
+            </Col>
+
+            <Col>
+              <CapturedPanel>
+                <TurnContext.Provider value={turnValue}>
+                  <EnPassentContext.Provider value={enPassentSquare}>
+                    <CheckContext.Provider value={check}>
+                      <BoardMemo currentUser={currentUserID.current} FEN={FEN} />
+                    </CheckContext.Provider>
+                  </EnPassentContext.Provider>
+                </TurnContext.Provider>
+              </CapturedPanel>
+            </Col>
+          </PlayerContext.Provider>
+
+          <Col>
+            <RightPanel turn={turn} FEN={FEN} />
+          </Col>
+        </Row>
+      </Container>
     </div>
   );
 }

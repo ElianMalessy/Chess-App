@@ -100,7 +100,7 @@ function Board({ currentUser }) {
             let color = FEN.current[i] === FEN.current[i].toUpperCase() ? 'white' : 'black';
             let key = String.fromCharCode(97 + column) + '' + row;
             let tile_class = (column + row) % 2 === 0 ? 'non-colored-tile' : 'colored-tile';
-
+            // use key instead of ID to move around pieces as that is immutable from the client side
             boardFiller.current.push(
               <div key={key} className={classes[tile_class]} id={'S' + key}>
                 <PieceMemo color={color} position={FEN.current[i].toLowerCase() + key} />
@@ -114,9 +114,9 @@ function Board({ currentUser }) {
     // eslint-disable-next-line
     [playerColor]
   );
+
   useEffect(
     () => {
-      console.log(checkPiece);
       if (checkPiece) {
         let kingPos;
         if (turn[0] === 'w') {
@@ -125,12 +125,13 @@ function Board({ currentUser }) {
         else {
           kingPos = $('[id^=k][class*=black]');
         }
-        console.log(kingPos);
         findPossibleMoves(checkPiece, kingPos); // only use for determining checkmate and possible moves if there is a check
       }
     },
-    [turn, checkPiece]
+    //eslint-disable-next-line
+    [checkPiece]
   );
+
   return (
     <div className={classes.chessboard} id='board'>
       {board}
