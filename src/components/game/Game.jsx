@@ -140,7 +140,6 @@ export default function Game(props) {
   }, []);
 
   // userHandler gets triggered on every load of the page
-  const [dbMessages, setDbMessages] = useState(null);
   useEffect(
     () => {
       userHandler(gameID.current, currentUserID.current, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
@@ -150,8 +149,6 @@ export default function Game(props) {
         await get(dbRef)
           .then((snapshot) => {
             if (snapshot.exists()) {
-              if (snapshot.val().messages) setDbMessages(snapshot.val().messages);
-
               let p1 = snapshot.val().player1;
               if (snapshot.val().player2 === undefined && pushVal !== p1) {
                 // new user, color = black
@@ -311,9 +308,8 @@ export default function Game(props) {
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');
     onValue(dbRef, (snapshot) => {
-      // if the arrays dont match then the person who moved the piece is running this code, which is not wanted
       let newLocation = [turn[1], turn[2]];
-      if (snapshot.exists() && arraysMatch(snapshot.val(), newLocation) === false) {
+      if (snapshot.exists()) {
         if (setLastMoveFromOtherUser.current === false) setLastMoveFromOtherUser.current = true;
         else {
           newLocation = snapshot.val();
@@ -333,13 +329,6 @@ export default function Game(props) {
         off(dbRef);
       }
     });
-    function arraysMatch(arr1, arr2) {
-      if (arr1 === null || arr2 === null || arr1.length !== arr2.length) return false;
-      for (let i = 0; i < arr1.length; i++) {
-        if (arr1[i] !== arr2[i]) return false;
-      }
-      return true;
-    }
   });
 
   const turnValue = useMemo(
@@ -362,7 +351,7 @@ export default function Game(props) {
         <Row>
           <PlayerContext.Provider value={playerColor}>
             <Col>
-              <Chat dbMessages={dbMessages} />
+              <Chat gameID={gameID.current} />
             </Col>
 
             <Col>

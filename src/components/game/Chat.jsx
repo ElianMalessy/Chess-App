@@ -1,28 +1,61 @@
-import { useContext, useState, useRef } from 'react';
+import { useContext, useState, useRef, useEffect } from 'react';
 import { Card, Form } from 'react-bootstrap';
 import { database } from '../../firebase';
+import { onValue, ref, push, get, set, child } from '@firebase/database';
 import { PlayerContext } from './Game';
 import classes from './Chat.module.css';
 
-export default function Chat({ dbMessages }) {
+export default function Chat({ gameID }) {
   const player = useContext(PlayerContext);
-  const [messages, setMessages] = useState(dbMessages ? dbMessages : []);
+  const [message, setMessage] = useState([]);
   const [typingMessage, setTypingMessage] = useState('');
-  const time = useRef([]);
+  const sentMessage = useRef(null);
+  const history = useRef([]);
+
+  useEffect(
+    () => {
+      const dbRef = ref(database, 'Games/' + gameID + '/messages');
+      const tempMessages = [];
+      async function getHistory() {
+        await get(dbRef).then((snapshot) => {
+          if (snapshot.exists()) {
+            Object.values(snapshot.val()).forEach((val) => {
+              history.current.push(val);
+              tempMessages.push(val);
+
+            });
+            setMessage(tempMessages);
+          }
+        });
+      }
+      getHistory();
+    },
+    [gameID]
+  );
+
+  function getTime() {
+    let today = new Date();
+    return today.getHours() + ':' + (today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes() + 1);
+  }
 
   function handleChange(event) {
     setTypingMessage(event.target.value);
   }
+
   function handleAdd(e) {
+    const dbRef = ref(database, 'Games/' + gameID + '/messages');
     e.preventDefault();
     if (typingMessage === '') return;
-    let today = new Date();
-    time.current.push(
-      today.getHours() + ':' + (today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes())
-    );
-    const newList = messages.concat(typingMessage);
-    setMessages(newList);
+
+    const currTime = getTime();
+    sentMessage.current = [player, typingMessage, currTime];
+    const newList = message.concat([sentMessage.current]);
+
+    setMessage(newList);
     setTypingMessage('');
+
+    const key = push(dbRef).key;
+    set(child(dbRef, key), sentMessage.current);
   }
 
   return (
@@ -30,13 +63,13 @@ export default function Chat({ dbMessages }) {
       <Card.Header>Chat</Card.Header>
       <Card.Body className={`${classes.chatBox}`} style={{ flexDirection: 'column' }}>
         <ul className={classes.chat} aria-live='polite'>
-          {messages &&
-            messages.map((message, index) => {
+          {message &&
+            message.map((message, index) => {
               return (
                 <li key={index} className='d-flex align-items-center'>
-                  {`${player}: ${message}`}
+                  {`${message[0] ? message[0] : player}: ${message[1]}`}
                   <span style={{ color: 'rgba(56, 56, 56, 0.825)', fontSize: '0.9rem', marginLeft: 'auto' }}>
-                    {time.current[index]}
+                    {message[2] ? message[2] : getTime()}
                   </span>
                 </li>
               );

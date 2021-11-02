@@ -2,8 +2,8 @@
 .chessboard {
   display: flex;
   flex-wrap: wrap;
-  width: 35em;
-  height: 35em;
+  width: 35rem;
+  height: 35rem;
   background-color: hsla(0, 0%, 4%, 0.604);
 }
 .colored-tile,
@@ -15,8 +15,8 @@
   pointer-events: all;
   align-items: center;
   justify-content: center;
-  width: 4.375em;
-  height: 4.375em;
+  width: 4.375rem;
+  height: 4.375rem;
 }
 
 .colored-tile {
@@ -32,8 +32,8 @@
 }
 .captured {
   pointer-events: none;
-  width: 4em;
-  height: 4em;
+  width: 4rem;
+  height: 4rem;
   position: relative;
 }
 .mainPage {

@@ -12,7 +12,7 @@
   background-clip: content-box;
 }
 .chat {
-  height: 50vh;
+  height: 25rem;
   list-style: none;
   padding-left: 0;
 }
