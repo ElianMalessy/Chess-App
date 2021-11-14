@@ -49,7 +49,6 @@ export default function Game(props) {
   const currentUserID = useRef();
   if (currentUser) currentUserID.current = currentUser.uid;
   else {
-    console.error('ID not present');
     currentUserID.current = 'temporaryID';
   }
 
@@ -237,13 +236,13 @@ export default function Game(props) {
 
       temp_FEN += ' ' + turn[0][0];
       if (true) temp_FEN += ' KQkq'; // for castling ***NEEDS FIX***
-      if (piece[0].toUpperCase() === 'P' && Math.abs(newLocation[0][2] - newLocation[1][2]) === 2) {
-        // pe2 to pe4 gets an enPassent_square of e3
-        let enPassent_sqaure;
+      if (piece[0].toLowerCase() === 'p' && Math.abs(newLocation[0][2] - newLocation[1][2]) === 2) {
+        // pe2 to pe4 gets an enPassentSquare of e3
+        let enPassentSquare;
         turn[0] === 'black'
-          ? (enPassent_sqaure = parseInt(newLocation[0][2]) + 1)
-          : (enPassent_sqaure = parseInt(newLocation[1][2]) + 1);
-        temp_FEN += ' ' + newLocation[0][1] + enPassent_sqaure;
+          ? (enPassentSquare = parseInt(newLocation[0][2]) + 1)
+          : (enPassentSquare = parseInt(newLocation[1][2]) + 1);
+        temp_FEN += ' ' + newLocation[0][1] + enPassentSquare;
       }
       else temp_FEN += ' -';
 
@@ -285,25 +284,21 @@ export default function Game(props) {
   });
 
   const [check, setCheck] = useState(null);
-  useEffect(
-    () => {
-      const dbRef = ref(database, 'Games/' + gameID.current + '/check');
-      onValue(dbRef, (snapshot) => {
-        if (snapshot.exists()) {
-          if (
-            ((snapshot.val()[0][0] === snapshot.val()[0][0].toLowerCase() && playerColor === 'black') ||
-              (snapshot.val()[0][0] === snapshot.val()[0][0].toUpperCase() && playerColor === 'white')) &&
-            (check === null || snapshot.val()[0] !== check[0])
-          ) {
-            console.log(playerColor);
-            setCheck(snapshot.val());
-            off(dbRef);
-          }
+  useEffect(() => {
+    const dbRef = ref(database, 'Games/' + gameID.current + '/check');
+    onValue(dbRef, (snapshot) => {
+      if (snapshot.exists()) {
+        if (
+          ((snapshot.val()[0][0] === snapshot.val()[0][0].toLowerCase() && playerColor === 'white') ||
+            (snapshot.val()[0][0] === snapshot.val()[0][0].toUpperCase() && playerColor === 'black')) &&
+          (check === null || JSON.stringify(snapshot.val()) === JSON.stringify(check))
+        ) {
+          setCheck(snapshot.val());
+          off(dbRef);
         }
-      });
-    }
-    //eslint-disable-next-line
-  );
+      }
+    });
+  });
 
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');

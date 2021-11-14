@@ -1,7 +1,7 @@
 import { useContext, useState, useRef, useEffect } from 'react';
 import { Card, Form } from 'react-bootstrap';
 import { database } from '../../firebase';
-import { onValue, ref, push, get, set, child } from '@firebase/database';
+import { onValue, ref, push, set, child } from '@firebase/database';
 import { PlayerContext } from './Game';
 import classes from './Chat.module.css';
 
@@ -10,36 +10,34 @@ export default function Chat({ gameID }) {
   const [message, setMessage] = useState([]);
   const [typingMessage, setTypingMessage] = useState('');
   const sentMessage = useRef(null);
-  const history = useRef([]);
 
-  useEffect(
-    () => {
-      const dbRef = ref(database, 'Games/' + gameID + '/messages');
-      const tempMessages = [];
-      async function getHistory() {
-        await get(dbRef).then((snapshot) => {
-          if (snapshot.exists()) {
-            Object.values(snapshot.val()).forEach((val) => {
-              history.current.push(val);
-              tempMessages.push(val);
-
-            });
-            setMessage(tempMessages);
-          }
-        });
+  useEffect(() => {
+    const dbRef = ref(database, 'Games/' + gameID + '/messages');
+    const dbMessages = [];
+    let listener = onValue(
+      dbRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          Object.values(snapshot.val()).forEach((msg) => {
+            dbMessages.push(msg);
+          });
+          setMessage(dbMessages);
+        }
+      },
+      {
+        onlyOnce: true
       }
-      getHistory();
-    },
-    [gameID]
-  );
+    );
+    return () => listener;
+  });
 
   function getTime() {
     let today = new Date();
     return today.getHours() + ':' + (today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes() + 1);
   }
 
-  function handleChange(event) {
-    setTypingMessage(event.target.value);
+  function handleChange(e) {
+    setTypingMessage(e.target.value);
   }
 
   function handleAdd(e) {

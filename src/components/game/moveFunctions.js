@@ -1,35 +1,32 @@
 import $ from 'jquery';
-export default function findPossibleMoves(checkingPieces, yourKing) {
+
+export default function getPossibleMoves(checkingPieces, yourKing) {
   // if there are checking pieces, then that means that the move that this player makes has to block those checking pieces
   // use isCheck on all of the possibilities, if its a bishop for example, that means that the move either has to be the king moving out of the way
   // (that can be true for all of them, as long as that next position doesnt return a true in isCheck()), or it can be a piece moving into that diag
   // if there are no possible moves to stop isCheck() as in it always returns true, then it is checkmate and the game ends
-  console.log(yourKing);
-  
-  const possibleMoves = [];
-  let pieces = yourKing.attr('color')[0] === 'w' ? $('span[class*=white]') : $('span[class*=black]');
 
-  const piecesArray = [...pieces]; // dont know if this works
+  const possibleMoves = [];
+  const pieces = yourKing.attr('color')[0] === 'w' ? $('span[class*=white]') : $('span[class*=black]');
+  const piecesArray = [...pieces];
   const tempPossibleSquares = new Set();
 
   checkingPieces.forEach((checkingPiece) => {
-    console.log(checkingPiece, yourKing.attr('id'));
     if (
       (checkingPiece[0].toLowerCase() === 'q' && checkingPiece[1] !== yourKing.attr('id')[1]) ||
       checkingPiece[0] === 'b'
     ) {
-      let square = movePiecesDiag(checkingPiece, yourKing.attr('id'));
-      //console.log(square);
-      if (square) tempPossibleSquares.add(square); // needs fix
+      const squares = movePiecesDiag(checkingPiece, yourKing.attr('id'));
+      if (Array.isArray(squares)) tempPossibleSquares.add(...squares); // needs fix
     }
     else if (checkingPiece[0].toLowerCase() === 'r' || checkingPiece[0].toLowerCase() === 'q') {
-      let square = movePiecesVertLat(checkingPiece, yourKing.attr('id'));
-      //console.log(square);
-      if (square) tempPossibleSquares.add(square);
+      const squares = movePiecesVertLat(checkingPiece, yourKing.attr('id'));
+      if (Array.isArray(squares)) tempPossibleSquares.add(...squares);
     }
-    tempPossibleSquares.add(checkingPiece); // can capture the checking piece to stop the check
+    tempPossibleSquares.add(checkingPiece[1] + checkingPiece[2]); // can capture the checking piece to stop the check
     // if the piece is a pawn or a knight, the only way to get unchecked is to move out of the way or to capture them
   });
+  console.log(tempPossibleSquares);
   piecesArray.forEach((piece) => {
     // if a piece going to this square triggers a discovered check, then dont put this into possible moves
     // since you have the possible squares in which the pieces must go into to protect the king, the next step is to check every piece and see if
@@ -40,7 +37,8 @@ export default function findPossibleMoves(checkingPieces, yourKing) {
       }
     });
   });
-  console.log(possibleMoves);
+  console.log(possibleMoves, 'possibleMoves');
+
   return tempPossibleSquares;
 }
 
@@ -50,7 +48,10 @@ export function isCheck(kingPos) {
   const potential_check_pieces = [...pieces];
   const checking_pieces = [];
   potential_check_pieces.forEach((piece) => {
-    if (piece.id[0].toUpperCase() !== 'K' && moveFunctions[piece.id[0]]('S' + kingPos[1] + kingPos[2], piece.id))
+    if (
+      piece.id[0].toUpperCase() !== 'K' &&
+      moveFunctions[piece.id[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece.id)
+    )
       checking_pieces.push(piece.id); // if a piece is attacking a king
   });
   return checking_pieces.length > 0 ? checking_pieces : false;
@@ -62,13 +63,14 @@ function movePiecesDiag(destination, origin) {
   const arrayOfAttack = [];
 
   if (Math.abs(destLetter - origLetter) === 1) return true; // dist = 1
+
   if (destLetter - origLetter > 0) {
     for (let i = 1; i < destLetter - origLetter; i++) {
       let num;
       destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) + i) : (num = parseInt(origin[2]) - i);
       let str = String.fromCharCode(origLetter + i) + num;
       arrayOfAttack.push(str);
-      if ($('[id$=' + str).length !== 1) return false;
+      if ($('[id$=' + str)[0].firstChild !== null) return false;
     }
   }
   else {
@@ -77,7 +79,7 @@ function movePiecesDiag(destination, origin) {
       destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) - i) : (num = parseInt(origin[2]) + i);
       let str = String.fromCharCode(origLetter + i) + num;
       arrayOfAttack.push(str);
-      if ($('[id$=' + str).length !== 1) return false;
+      if ($('[id$=' + str)[0].firstChild !== null) return false;
     }
   }
   return arrayOfAttack;
@@ -86,23 +88,35 @@ function movePiecesDiag(destination, origin) {
 function movePiecesVertLat(destination, origin) {
   let destLetter = destination[1].charCodeAt(0);
   let origLetter = origin[1].charCodeAt(0);
+  console.log(destination, origin);
   const arrayOfAttack = [];
 
-  if (Math.abs(destLetter - origLetter) === 1 || Math.abs(destination[2] - origin[2]) === 1) return true;
+  if (
+    (Math.abs(destLetter - origLetter) === 1 && destination[2] === origin[2]) ||
+    (Math.abs(destination[2] - origin[2]) === 1 && destLetter === origLetter)
+  )
+    return true;
   else if (destLetter - origLetter > 0) {
     // distance = 1 means nothing can be in the way
     for (let i = 1; i < destLetter - origLetter; i++) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
+      console.log(str, $('[id$=' + str)[0].firstChild);
       arrayOfAttack.push(str);
-      if ($('[id$=' + str).length !== 1) return false;
+      if ($('[id$=' + str)[0].firstChild !== null) return false;
     }
   }
   else if (destLetter - origLetter < 0) {
     for (let i = -1; i > destLetter - origLetter; i--) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
+      console.log(str, $('[id$=' + str)[0].firstChild);
+
       arrayOfAttack.push(str);
-      if ($('[id$=' + str).length !== 1) return false;
+      if ($('[id$=' + str)[0].firstChild !== null) {
+        console.log(str, 'here');
+        return false;
+      }
     }
+    return arrayOfAttack;
   }
   else {
     // vertical movement
@@ -112,7 +126,10 @@ function movePiecesVertLat(destination, origin) {
         let str = String.fromCharCode(origLetter) + num;
 
         arrayOfAttack.push(str);
-        if ($('[id$=' + str).length !== 1) return false;
+        if ($('[id$=' + str)[0].firstChild !== null) {
+          console.log(str);
+          return false;
+        }
       }
     }
     else if (destination[2] - origin[2] < 0) {
@@ -121,18 +138,163 @@ function movePiecesVertLat(destination, origin) {
         let str = String.fromCharCode(origLetter) + num;
 
         arrayOfAttack.push(str);
-        if ($('[id$=' + str).length !== 1) return false;
+        if ($('[id$=' + str)[0].firstChild !== null) {
+          console.log(str);
+          return false;
+        }
       }
     }
+    console.log(arrayOfAttack);
     return arrayOfAttack;
   }
 }
 
-// for every piece move except a pawn, the way u calculate possible moves, is u look at the destination and u backtrack
-// say rook a1 and pawn a4, destination is rook a1 - a5. u start with checking if rook a2 is possible, then rook a3 and so forth
-// for king check, you ask if it can be captured next move
+function getColor(pieceType) {
+  if (pieceType.toUpperCase() === pieceType) return 'w';
+  else return 'b';
+}
+
+export function highlightSquares(piece, enPassentSquare) {
+  console.log(piece);
+  const pieceType = piece[0];
+  const position = piece[1] + piece[2];
+
+  switch (pieceType) {
+    case 'p':
+      return getBlackPawnMoves(position, 'b', enPassentSquare);
+    case 'P':
+      return getWhitePawnMoves(position, 'w', enPassentSquare);
+    case 'n':
+      return getKnightMoves(position, 'b');
+    case 'N':
+      return getKnightMoves(position, 'w');
+    case 'q':
+      return getQueenMoves(position, 'b');
+    case 'Q':
+      return getQueenMoves(position, 'w');
+
+    default:
+      break;
+  }
+}
+
+function getWhitePawnMoves(position, color, enPassentSquare) {
+  const possibleMoves = [];
+  const positionLetter = position.charCodeAt(0);
+
+  if (!$('#S' + position[0] + (parseInt(position[1]) + 1)).firstChild)
+    possibleMoves.push(position[0] + (parseInt(position[1]) + 1));
+  if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) + 2)).firstChild)
+    possibleMoves.push(position[0] + (parseInt(position[1]) + 2));
+
+  let upLeft = $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) + 1));
+  let upRight = $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) + 1));
+
+  if (upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
+    possibleMoves.push(upLeft[0].id[1] + upLeft[0].id[2]);
+  if (upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
+    possibleMoves.push(upRight[0].id[1] + upRight[0].id[2]);
+
+  if (
+    position[1] === '5' &&
+    enPassentSquare[1] === '5' &&
+    Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
+  ) {
+    possibleMoves.push('E' + enPassentSquare[0] + '4'); // 'E' for enPassent
+  }
+
+  return possibleMoves;
+}
+
+function getBlackPawnMoves(position, color, enPassentSquare) {
+  const possibleMoves = [];
+  const positionLetter = position.charCodeAt(0);
+
+  if (!$('#S' + position[0] + (parseInt(position[1]) - 1)).firstChild)
+    possibleMoves.push(position[0] + (parseInt(position[1]) - 1));
+  if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) - 2)).firstChild)
+    possibleMoves.push(position[0] + (parseInt(position[1]) - 2));
+
+  let upLeft = $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) - 1));
+  let upRight = $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) - 1));
+
+  if (upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
+    possibleMoves.push(upLeft[0].id[1] + upLeft[0].id[2]);
+  if (upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
+    possibleMoves.push(upRight[0].id[1] + upRight[0].id[2]);
+
+  if (
+    position[1] === '4' &&
+    enPassentSquare[1] === '4' &&
+    Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
+  ) {
+    possibleMoves.push('E' + enPassentSquare[0] + '3'); // 'E' for enPassent
+  }
+
+  return possibleMoves;
+}
+
+function getKnightMoves(position, color) {
+  const possibleMoves = [];
+  const destinations = [[-1, 2], [1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1]]; // all the knight moves
+  const positionLetter = position.charCodeAt(0);
+  const positionNum = parseInt(position[1]);
+
+  for (let i = 0; i < 8; i++) {
+    const newLetter = positionLetter + destinations[i][0];
+    const newNumber = positionNum + destinations[i][1];
+    if (newNumber > 0 && newLetter >= 'a'.charCodeAt(0) && newLetter <= 'h'.charCodeAt(0)) {
+      let square = $('#S' + String.fromCharCode(newLetter) + newNumber);
+
+      if (square[0].firstChild) {
+        if (color !== getColor(square[0].firstChild.id[0])) {
+          possibleMoves.push('C' + square[0].id); // 'C' for captureHint
+        }
+      }
+      if (!square[0].firstChild) {
+        possibleMoves.push((square[0].id[1] = square[0].id[2]));
+      }
+    }
+  }
+  return possibleMoves;
+}
+
+function getQueenMoves(position, color) {
+  const possibleMoves = [];
+
+  const positionCharCode = position.charCodeAt(0);
+  const positionNum = parseInt(position[1]);
+  const differenceFromLeft = positionCharCode - 'a'.charCodeAt(0);
+  const differenceFromRight = 'h'.charCodeAt(0) - positionCharCode;
+
+  let lbDiag,
+    lMid,
+    ltDiag,
+    rbDiag,
+    rMid,
+    rtDiag = true;
+
+  for (let i = 0; i < differenceFromLeft; i++) { // make this into diagonals function so that bishop can use
+    // get left horizontal, top left diag, bottom left diag
+    if (lbDiag) {
+      let square = $('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum + 1))[0];
+      if (square[0].firstChild) {
+        if (color !== getColor(square[0].firstChild.id[0])) {
+          possibleMoves.push('C' + square[0].id); // 'C' for captureHint
+        }
+        lbDiag = false;
+      }
+      if (!square[0].firstChild) {
+        possibleMoves.push((square[0].id[1] = square[0].id[2]));
+      }
+    }
+  }
+  for (let i = 0; i < differenceFromRight; i++) {}
+  return possibleMoves;
+}
+
 export const moveFunctions = {
-  n: function canMoveKnight(destination, origin) {
+  n: function Knight(destination, origin) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     if (
@@ -141,32 +303,33 @@ export const moveFunctions = {
     )
       return true;
   },
-  b: function canMoveBishop(destination, origin) {
+  b: function Bishop(destination, origin) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     if (Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2])) {
       if (movePiecesDiag(destination, origin)) return true;
     }
   },
-  r: function canMoveRook(destination, origin) {
+  r: function Rook(destination, origin) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     if (destLetter === origLetter || destination[2] === origin[2]) {
       if (movePiecesVertLat(destination, origin)) return true;
     }
   },
-  q: function canMoveQueen(destination, origin) {
+  q: function Queen(destination, origin) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
-    if ((destLetter === origLetter || destination[2] === origin[2]) && movePiecesVertLat(destination, origin))
+    if ((destLetter === origLetter || destination[2] === origin[2]) && movePiecesVertLat(destination, origin)) {
       return true;
+    }
     else if (
       Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2]) &&
       movePiecesDiag(destination, origin)
     )
       return true;
   },
-  k: function canMoveKing(destination, origin) {
+  k: function King(destination, origin) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     if (
@@ -175,7 +338,7 @@ export const moveFunctions = {
     )
       return true;
   },
-  p: function canMovePawn(destination, origin) {
+  p: function Pawn(destination, origin) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     let pawn = $('#' + origin);
@@ -185,7 +348,7 @@ export const moveFunctions = {
       //let enPassent_sqaure;
       //FEN[1] === '-' ? (enPassent_sqaure = null) : (enPassent_sqaure = FEN);
       let attemptedEnPassent_sqaure;
-      if ($('#' + destination).children().length > 0 && Math.abs(destination[2] - origin[2]) === 1) {
+      if ($('#' + destination)[0].firstChild !== null && Math.abs(destination[2] - origin[2]) === 1) {
         return true;
       }
       else if (pawnColor === 'white') {

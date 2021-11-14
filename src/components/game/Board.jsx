@@ -70,7 +70,7 @@ function Board({ currentUser }) {
 
             boardFiller.current.push(
               <div key={key} className={classes[tile_class]} id={'S' + key}>
-                <PieceMemo color={color} position={FEN.current[i].toLowerCase() + key} />
+                <PieceMemo color={color} position={FEN.current[i] + key} />
               </div>
             );
           }
@@ -103,7 +103,7 @@ function Board({ currentUser }) {
             // use key instead of ID to move around pieces as that is immutable from the client side
             boardFiller.current.push(
               <div key={key} className={classes[tile_class]} id={'S' + key}>
-                <PieceMemo color={color} position={FEN.current[i].toLowerCase() + key} />
+                <PieceMemo color={color} position={FEN.current[i] + key} />
               </div>
             );
           }
@@ -118,9 +118,10 @@ function Board({ currentUser }) {
   useEffect(
     () => {
       if (checkPiece) {
+        console.log(checkPiece);
         let kingPos;
         if (turn[0] === 'w') {
-          kingPos = $('[id^=k][class*=white]');
+          kingPos = $('[id^=K][class*=white]');
         }
         else {
           kingPos = $('[id^=k][class*=black]');
@@ -131,7 +132,7 @@ function Board({ currentUser }) {
     //eslint-disable-next-line
     [checkPiece]
   );
-
+  
   return (
     <div className={classes.chessboard} id='board'>
       {board}

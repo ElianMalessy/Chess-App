@@ -25,6 +25,26 @@
 .non-colored-tile {
   background-color: hsl(30, 67%, 82%);
 }
+
+.hint,
+.captureHint {
+  background-clip: content-box;
+  border-radius: 50%;
+  box-sizing: border-box;
+  pointer-events: none;
+  height: 45%;
+  width: 45%;
+}
+.hint {
+  padding: 4.2%;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.captureHint {
+  border: 7px solid rgba(0, 0, 0, 0.2);
+  height: 100%;
+  width: 100%;
+}
+
 .captured-bg {
   pointer-events: none;
   width: 100%;

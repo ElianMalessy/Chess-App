@@ -10,8 +10,8 @@ export default function CapturedPanel({ children }) {
   const [piece, setPiece] = useState(null);
   const value = { piece, setPiece };
 
-  const pieceMemo = useMemo(() => <div id={'end' + num} className={classes['captured']} key={num} />, [num]);
-  const dereferenceObjPieces = pieceMemo;
+  const pieceDiv = useMemo(() => <div id={'end' + num} className={classes['captured']} key={num} />, [num]);
+  const dereferenceObjPieces = pieceDiv;
   const all_pieces = useMemo(() => [], []);
   useEffect(
     () => {
@@ -35,13 +35,11 @@ export default function CapturedPanel({ children }) {
   );
 
   return (
-    <div>
-      <CapturedPieces.Provider value={value}>
-        {children}
-        <Card className='w-100' style={{ maxWidth: '35em', backgroundColor: '#0a0a0a9a' }}>
-          <div className={classes['captured-bg']}>{all_pieces}</div>
-        </Card>
-      </CapturedPieces.Provider>
-    </div>
+    <CapturedPieces.Provider value={value}>
+      {children}
+      <Card className='w-100' style={{ maxWidth: '35em', backgroundColor: '#0a0a0a9a' }}>
+        <div className={classes['captured-bg']}>{all_pieces}</div>
+      </Card>
+    </CapturedPieces.Provider>
   );
 }
