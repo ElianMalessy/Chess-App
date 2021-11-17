@@ -26,14 +26,13 @@ export default memo(function PieceMemo({ color, position }) {
         overlay.addClass(captureHintClass);
       }
       else {
-        if (square[0] === 'E') square = 'S' + square[1] + square[2];
+        if (square[0] === 'E') square = square[2] + square[3];
 
         let overlay = $(`<div id=${index}></div>`);
         $('#S' + square).append(overlay);
         overlay.addClass(hintClass);
       }
     });
-    console.log(possibleSquares.current);
 
     const move = $(mouse.target);
     const rect = document.elementFromPoint(mouse.pageX, mouse.pageY).getBoundingClientRect();
@@ -67,6 +66,9 @@ export default memo(function PieceMemo({ color, position }) {
     const moving_piece = $(mouse.target);
     const original_id = mouse.target.id;
     moving_piece.css('z-index', -100);
+    possibleSquares.current.forEach((squareID, index) => {
+      $('#' + index).remove();
+    });
 
     const destinationSquare = document.elementFromPoint(mouse.pageX, mouse.pageY).id;
     const destinationPosition = destinationSquare[1] + destinationSquare[2];
@@ -75,7 +77,6 @@ export default memo(function PieceMemo({ color, position }) {
 
     // if same square as original, then end
     if (destinationSquare && !(destinationSquare[1] === original_id[1] && destinationSquare[2] === original_id[2])) {
-      console.log(possibleSquares.current, destinationPosition)
       let whiteKingPos = $('[id^=K][class*=white]')[0];
       let blackKingPos = $('[id^=k][class*=black]')[0];
 
@@ -83,14 +84,8 @@ export default memo(function PieceMemo({ color, position }) {
       $('#' + original_id).attr('id', finalPosition); // id change to see that if in new position there are any checks
 
       const check = turn === 'white' ? isCheck(whiteKingPos.id) : isCheck(blackKingPos.id);
-      if (check) {
-        // if the move causes a discovered check to ones own king, then it is not a legal move
-        // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
-        console.log('isCheck', check);
-        $(finalPosition).attr('id', original_id);
-        moved = false;
-      }
-      else if (
+
+      if (
         possibleSquares.current.includes(destinationPosition) ||
         possibleSquares.current.includes('C' + destinationPosition) ||
         possibleSquares.current.includes('E' + destinationPosition)
@@ -118,11 +113,18 @@ export default memo(function PieceMemo({ color, position }) {
           endLocation.push(check1);
         }
       }
+      else {
+        if (check) {
+          // if the move causes a discovered check to ones own king, then it is not a legal move
+          // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
+          console.log('isCheck', check);
+        }
+        console.log(finalPosition, original_id);
+        $('#' + finalPosition).attr('id', original_id);
+        moved = false;
+      }
     }
 
-    possibleSquares.current.forEach((squareID, index) => {
-      $('#' + index).remove();
-    });
     possibleSquares.current = [];
     $(document).off('mousemove');
     moving_piece.css('z-index', 10);
@@ -140,7 +142,7 @@ export default memo(function PieceMemo({ color, position }) {
   if (playerColor) {
     if (position[0].toLowerCase() === 'p') {
       return (
-        <span
+        <div
           className={Classes}
           onMouseDown={drag}
           onMouseUp={endDrag}
@@ -152,7 +154,7 @@ export default memo(function PieceMemo({ color, position }) {
     }
     else {
       return (
-        <span
+        <div
           className={Classes}
           onMouseDown={drag}
           onMouseUp={endDrag}
@@ -165,7 +167,7 @@ export default memo(function PieceMemo({ color, position }) {
   }
   else {
     return (
-      <span
+      <div
         className={Classes}
         onMouseDown={drag}
         onMouseUp={endDrag}

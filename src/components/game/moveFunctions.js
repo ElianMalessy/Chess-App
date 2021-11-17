@@ -1,3 +1,4 @@
+/* eslint-disable no-loop-func */
 import $ from 'jquery';
 
 export default function getPossibleMoves(checkingPieces, yourKing) {
@@ -155,7 +156,6 @@ function getColor(pieceType) {
 }
 
 export function highlightSquares(piece, enPassentSquare) {
-  console.log(piece);
   const pieceType = piece[0];
   const position = piece[1] + piece[2];
 
@@ -172,7 +172,14 @@ export function highlightSquares(piece, enPassentSquare) {
       return getQueenMoves(position, 'b');
     case 'Q':
       return getQueenMoves(position, 'w');
-
+    case 'r':
+      return getRookMoves(position, 'b');
+    case 'R':
+      return getRookMoves(position, 'w');
+    case 'b':
+      return getBishopMoves(position, 'b');
+    case 'B':
+      return getBishopMoves(position, 'w');
     default:
       break;
   }
@@ -182,18 +189,24 @@ function getWhitePawnMoves(position, color, enPassentSquare) {
   const possibleMoves = [];
   const positionLetter = position.charCodeAt(0);
 
-  if (!$('#S' + position[0] + (parseInt(position[1]) + 1)).firstChild)
+  if (!$('#S' + position[0] + (parseInt(position[1]) + 1))[0].firstChild)
     possibleMoves.push(position[0] + (parseInt(position[1]) + 1));
-  if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) + 2)).firstChild)
+  if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) + 2))[0].firstChild)
     possibleMoves.push(position[0] + (parseInt(position[1]) + 2));
 
-  let upLeft = $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) + 1));
-  let upRight = $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) + 1));
+  let upLeft =
+    positionLetter - 1 >= 'a'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) + 1))
+      : null;
+  let upRight =
+    positionLetter + 1 <= 'h'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) + 1))
+      : null;
 
-  if (upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
-    possibleMoves.push(upLeft[0].id[1] + upLeft[0].id[2]);
-  if (upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
-    possibleMoves.push(upRight[0].id[1] + upRight[0].id[2]);
+  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
+    possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
+  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
+    possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
 
   if (
     position[1] === '5' &&
@@ -210,18 +223,24 @@ function getBlackPawnMoves(position, color, enPassentSquare) {
   const possibleMoves = [];
   const positionLetter = position.charCodeAt(0);
 
-  if (!$('#S' + position[0] + (parseInt(position[1]) - 1)).firstChild)
+  if (!$('#S' + position[0] + (parseInt(position[1]) - 1))[0].firstChild)
     possibleMoves.push(position[0] + (parseInt(position[1]) - 1));
-  if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) - 2)).firstChild)
+  if (position[1] === '7' && !$('#S' + position[0] + (parseInt(position[1]) - 2))[0].firstChild)
     possibleMoves.push(position[0] + (parseInt(position[1]) - 2));
 
-  let upLeft = $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) - 1));
-  let upRight = $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) - 1));
+  let upLeft =
+    positionLetter + 1 <= 'h'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) - 1))
+      : null;
+  let upRight =
+    positionLetter - 1 >= 'a'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) - 1))
+      : null;
 
-  if (upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
-    possibleMoves.push(upLeft[0].id[1] + upLeft[0].id[2]);
-  if (upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
-    possibleMoves.push(upRight[0].id[1] + upRight[0].id[2]);
+  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
+    possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
+  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
+    possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
 
   if (
     position[1] === '4' &&
@@ -243,16 +262,153 @@ function getKnightMoves(position, color) {
   for (let i = 0; i < 8; i++) {
     const newLetter = positionLetter + destinations[i][0];
     const newNumber = positionNum + destinations[i][1];
-    if (newNumber > 0 && newLetter >= 'a'.charCodeAt(0) && newLetter <= 'h'.charCodeAt(0)) {
+    if (newNumber <= 8 && newNumber > 0 && newLetter >= 'a'.charCodeAt(0) && newLetter <= 'h'.charCodeAt(0)) {
       let square = $('#S' + String.fromCharCode(newLetter) + newNumber);
-
       if (square[0].firstChild) {
         if (color !== getColor(square[0].firstChild.id[0])) {
-          possibleMoves.push('C' + square[0].id); // 'C' for captureHint
+          possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
         }
       }
       if (!square[0].firstChild) {
-        possibleMoves.push((square[0].id[1] = square[0].id[2]));
+        possibleMoves.push(square[0].id[1] + square[0].id[2]);
+      }
+    }
+  }
+  return possibleMoves;
+}
+
+function getVerticalMoves(position, color) {
+  const possibleMoves = [];
+
+  const positionNum = parseInt(position[1]);
+  const differenceFromTop = 8 - positionNum;
+  const differenceFromBottom = positionNum - 1;
+
+  for (let i = 0; i < differenceFromTop; i++) {
+    let square = $('#S' + position[0] + (positionNum + i + 1));
+    console.log(square);
+
+    if (square[0].firstChild) {
+      if (color !== getColor(square[0].firstChild.id[0])) {
+        possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
+      }
+      break;
+    }
+    else if (!square[0].firstChild) {
+      possibleMoves.push(square[0].id[1] + square[0].id[2]);
+    }
+  }
+  for (let i = 0; i < differenceFromBottom; i++) {
+    let square = $('#S' + position[0] + (positionNum - i - 1));
+    console.log(square);
+    if (square[0].firstChild) {
+      if (color !== getColor(square[0].firstChild.id[0])) {
+        possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
+      }
+      break;
+    }
+    else if (!square[0].firstChild) {
+      possibleMoves.push(square[0].id[1] + square[0].id[2]);
+    }
+  }
+  console.log(possibleMoves);
+  return possibleMoves;
+}
+
+function getRookMoves(position, color) {
+  const possibleMoves = [];
+  possibleMoves.push(...getVerticalMoves(position, color));
+
+  const positionCharCode = position.charCodeAt(0);
+  const positionNum = parseInt(position[1]);
+  const differenceFromLeft = positionCharCode - 'a'.charCodeAt(0);
+  const differenceFromRight = 'h'.charCodeAt(0) - positionCharCode;
+
+  for (let i = 0; i < differenceFromLeft; i++) {
+    let square = $('#S' + String.fromCharCode(positionCharCode - i - 1) + positionNum);
+    console.log(square);
+
+    if (square[0].firstChild) {
+      if (color !== getColor(square[0].firstChild.id[0])) {
+        possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
+      }
+      break;
+    }
+    else if (!square[0].firstChild) {
+      possibleMoves.push(square[0].id[1] + square[0].id[2]);
+    }
+  }
+  for (let i = 0; i < differenceFromRight; i++) {
+    let square = $('#S' + String.fromCharCode(positionCharCode + i + 1) + positionNum);
+    console.log(square);
+
+    if (square[0].firstChild) {
+      if (color !== getColor(square[0].firstChild.id[0])) {
+        possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
+      }
+      break;
+    }
+    else if (!square[0].firstChild) {
+      possibleMoves.push(square[0].id[1] + square[0].id[2]);
+    }
+  }
+  return possibleMoves;
+}
+
+function getBishopMoves(position, color) {
+  const possibleMoves = [];
+
+  const positionCharCode = position.charCodeAt(0);
+  const positionNum = parseInt(position[1]);
+  const differenceFromLeft = positionCharCode - 'a'.charCodeAt(0);
+  const differenceFromRight = 'h'.charCodeAt(0) - positionCharCode;
+
+  let lbDiag, ltDiag, rbDiag, rtDiag;
+  lbDiag = ltDiag = rbDiag = rtDiag = true;
+  for (let i = 0; i < differenceFromLeft; i++) {
+    // make this into diagonals function so that bishop can use
+    // get left horizontal, top left diag, bottom left diag
+    let squares = [];
+    if (lbDiag && positionNum - i - 1 > 0)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum - i - 1))[0], 'lbDiag']);
+    if (ltDiag && positionNum + i + 1 <= 8)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum + i + 1))[0], 'ltDiag']);
+    for (let j = 0; j < squares.length; j++) {
+      let square = squares[j];
+      console.log(square);
+
+      if (square[0].firstChild) {
+        if (color !== getColor(square[0].firstChild.id[0])) {
+          possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
+        }
+        if (square[1] === 'lbDiag') lbDiag = false;
+        else if (square[1] === 'ltDiag') ltDiag = false;
+      }
+      else if (!square[0].firstChild) {
+        possibleMoves.push(square[0].id[1] + square[0].id[2]);
+      }
+    }
+  }
+  for (let i = 0; i < differenceFromRight; i++) {
+    let squares = [];
+    if (rbDiag && positionNum - i - 1 > 0)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode + i + 1) + (positionNum - i - 1))[0], 'rbDiag']);
+    if (rtDiag && positionNum + i + 1 <= 8)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1))[0], 'rtDiag']);
+
+    for (let j = 0; j < squares.length; j++) {
+      let square = squares[j];
+      console.log(square);
+      if (square[0].firstChild) {
+        if (color !== getColor(square[0].firstChild.id[0])) {
+          possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
+        }
+        if (square[1] === 'rbDiag') rbDiag = false;
+        else if (square[1] === 'rtDiag') rtDiag = false;
+      }
+      else if (!square[0].firstChild) {
+        console.log(square[0]);
+        possibleMoves.push(square[0].id[1] + square[0].id[2]);
       }
     }
   }
@@ -261,35 +417,67 @@ function getKnightMoves(position, color) {
 
 function getQueenMoves(position, color) {
   const possibleMoves = [];
+  possibleMoves.push(...getVerticalMoves(position, color));
 
   const positionCharCode = position.charCodeAt(0);
   const positionNum = parseInt(position[1]);
   const differenceFromLeft = positionCharCode - 'a'.charCodeAt(0);
   const differenceFromRight = 'h'.charCodeAt(0) - positionCharCode;
 
-  let lbDiag,
-    lMid,
-    ltDiag,
-    rbDiag,
-    rMid,
-    rtDiag = true;
+  let lbDiag, lMid, ltDiag, rbDiag, rMid, rtDiag;
+  lbDiag = lMid = ltDiag = rbDiag = rMid = rtDiag = true;
 
-  for (let i = 0; i < differenceFromLeft; i++) { // make this into diagonals function so that bishop can use
+  for (let i = 0; i < differenceFromLeft; i++) {
+    // make this into diagonals function so that bishop can use
     // get left horizontal, top left diag, bottom left diag
-    if (lbDiag) {
-      let square = $('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum + 1))[0];
+    let squares = [];
+    if (lbDiag && positionNum - i - 1 > 0)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum - i - 1))[0], 'lbDiag']);
+    if (lMid) squares.push([$('#S' + String.fromCharCode(positionCharCode - i - 1) + positionNum)[0], 'lMid']);
+    if (ltDiag && positionNum + i + 1 <= 8)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum + i + 1))[0], 'ltDiag']);
+    for (let j = 0; j < squares.length; j++) {
+      let square = squares[j];
+      console.log(square);
+
       if (square[0].firstChild) {
         if (color !== getColor(square[0].firstChild.id[0])) {
-          possibleMoves.push('C' + square[0].id); // 'C' for captureHint
+          possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
         }
-        lbDiag = false;
+        if (square[1] === 'lbDiag') lbDiag = false;
+        else if (square[1] === 'lMid') lMid = false;
+        else if (square[1] === 'ltDiag') ltDiag = false;
       }
-      if (!square[0].firstChild) {
-        possibleMoves.push((square[0].id[1] = square[0].id[2]));
+      else if (!square[0].firstChild) {
+        possibleMoves.push(square[0].id[1] + square[0].id[2]);
       }
     }
   }
-  for (let i = 0; i < differenceFromRight; i++) {}
+  for (let i = 0; i < differenceFromRight; i++) {
+    let squares = [];
+    if (rbDiag && positionNum - i - 1 > 0)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode + i + 1) + (positionNum - i - 1))[0], 'rbDiag']);
+    if (rMid) squares.push([$('#S' + String.fromCharCode(positionCharCode + i + 1) + positionNum)[0], 'rMid']);
+    if (rtDiag && positionNum + i + 1 <= 8)
+      squares.push([$('#S' + String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1))[0], 'rtDiag']);
+
+    for (let j = 0; j < squares.length; j++) {
+      let square = squares[j];
+      console.log(square);
+      if (square[0].firstChild) {
+        if (color !== getColor(square[0].firstChild.id[0])) {
+          possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
+        }
+        if (square[1] === 'rbDiag') rbDiag = false;
+        else if (square[1] === 'rMid') rMid = false;
+        else if (square[1] === 'rtDiag') rtDiag = false;
+      }
+      else if (!square[0].firstChild) {
+        console.log(square[0]);
+        possibleMoves.push(square[0].id[1] + square[0].id[2]);
+      }
+    }
+  }
   return possibleMoves;
 }
 
