@@ -1,16 +1,18 @@
 import { useContext, memo, useRef } from 'react';
 import classes from './Board.module.css';
 import classNames from 'classnames';
-import { TurnContext, PlayerContext, EnPassentContext } from './Game';
+import { TurnContext, PlayerContext, EnPassentContext, BoardContext } from './Game';
 import { CapturedPieces } from './CapturedPanel';
 import $ from 'jquery';
 import { isCheck, highlightSquares } from './moveFunctions';
+import findPositionOf from './findBoardIndex';
 
 export default memo(function PieceMemo({ color, position }) {
   const { turn, setTurn } = useContext(TurnContext);
   const { setPiece } = useContext(CapturedPieces);
   const { enPassentSquare } = useContext(EnPassentContext);
   const playerColor = useContext(PlayerContext);
+  const boardArray = useContext(BoardContext);
 
   const possibleSquares = useRef([]);
   const captureHintClass = classes.captureHint;
@@ -77,51 +79,57 @@ export default memo(function PieceMemo({ color, position }) {
 
     // if same square as original, then end
     if (destinationSquare && !(destinationSquare[1] === original_id[1] && destinationSquare[2] === original_id[2])) {
-      let whiteKingPos = $('[id^=K][class*=white]')[0];
-      let blackKingPos = $('[id^=k][class*=black]')[0];
+      const whiteKingPos = findPositionOf(boardArray, 'K');
+      const blackKingPos = findPositionOf(boardArray, 'k');
 
-      const finalPosition = original_id[0] + destinationPosition;
-      $('#' + original_id).attr('id', finalPosition); // id change to see that if in new position there are any checks
+      const final_id = original_id[0] + destinationPosition;
+      $('#' + original_id).attr('id', final_id);
 
-      const check = turn === 'white' ? isCheck(whiteKingPos.id) : isCheck(blackKingPos.id);
+      const column = original_id.charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
+      const row = parseInt(original_id[2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
 
-      if (
+      const piece = boardArray[7 - row][column];
+      const tempBoardArray = boardArray;
+      tempBoardArray[7 - row][column] = '1'; // prev square is now empty
+      const newColumn = final_id.charCodeAt(1) - 97;
+      const newRow = parseInt(final_id[2]) - 1;
+      tempBoardArray[7 - newRow][newColumn] = piece;
+
+      const check = turn === 'white' ? isCheck(whiteKingPos, tempBoardArray) : isCheck(blackKingPos, tempBoardArray);
+      if (check) {
+        // if the move causes a discovered check to ones own king, then it is not a legal move
+        // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
+        console.log('isCheck', check);
+        console.log(final_id, original_id);
+        $('#' + final_id).attr('id', original_id);
+        moved = false;
+      }
+      else if (
         possibleSquares.current.includes(destinationPosition) ||
         possibleSquares.current.includes('C' + destinationPosition) ||
         possibleSquares.current.includes('E' + destinationPosition)
       ) {
+        let capturedPiece;
         if (possibleSquares.current.includes('C' + destinationPosition)) {
-          let capturedPiece = $('#' + destinationSquare)[0].firstChild;
-          setPiece($('#' + capturedPiece.id)[0]);
-          $('#' + capturedPiece.id).css('opacity', 0);
-          $('#' + capturedPiece.id).remove();
+          capturedPiece = $('#' + destinationSquare)[0].firstChild;
         }
         else if (possibleSquares.current.includes('E' + destinationPosition)) {
-          let capturedPiece = $('#S' + enPassentSquare)[0].firstChild; // dont know if this works
-          setPiece($('#' + capturedPiece.id)[0]);
-          $('#' + capturedPiece.id).css('opacity', 0);
+          capturedPiece = $('#S' + enPassentSquare)[0].firstChild;
+        }
+        if (capturedPiece) {
+          setPiece($('#' + capturedPiece.id).attr('class'));
           $('#' + capturedPiece.id).remove();
         }
 
         moved = true;
-        $('#' + finalPosition).appendTo('#S' + destinationPosition);
-        endLocation.push(original_id, finalPosition);
+        $('#' + final_id).appendTo('#S' + destinationPosition);
+        endLocation.push(original_id, final_id);
 
-        const check1 = turn === 'white' ? isCheck(blackKingPos.id) : isCheck(whiteKingPos.id);
+        const check1 = turn === 'white' ? isCheck(blackKingPos, tempBoardArray) : isCheck(whiteKingPos, tempBoardArray);
         if (check1) {
           console.log(check1);
           endLocation.push(check1);
         }
-      }
-      else {
-        if (check) {
-          // if the move causes a discovered check to ones own king, then it is not a legal move
-          // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
-          console.log('isCheck', check);
-        }
-        console.log(finalPosition, original_id);
-        $('#' + finalPosition).attr('id', original_id);
-        moved = false;
       }
     }
 
@@ -140,7 +148,7 @@ export default memo(function PieceMemo({ color, position }) {
   let pieceClass = color + '-' + position[0].toLowerCase();
   const Classes = classNames(classes[color], classes[pieceClass]);
   if (playerColor) {
-    if (position[0].toLowerCase() === 'p') {
+    if (position[0].toLowerCase() === 'p' || playerColor === 'spectator') {
       return (
         <div
           className={Classes}

@@ -1,27 +1,26 @@
 /* eslint-disable no-loop-func */
 import $ from 'jquery';
+import { findAllPieces } from './findBoardIndex';
 
-export default function getPossibleMoves(checkingPieces, yourKing) {
+export default function getPossibleMoves(checkingPieces, kingPos, piecesArray) {
   // if there are checking pieces, then that means that the move that this player makes has to block those checking pieces
   // use isCheck on all of the possibilities, if its a bishop for example, that means that the move either has to be the king moving out of the way
   // (that can be true for all of them, as long as that next position doesnt return a true in isCheck()), or it can be a piece moving into that diag
   // if there are no possible moves to stop isCheck() as in it always returns true, then it is checkmate and the game ends
 
   const possibleMoves = [];
-  const pieces = yourKing.attr('color')[0] === 'w' ? $('span[class*=white]') : $('span[class*=black]');
-  const piecesArray = [...pieces];
   const tempPossibleSquares = new Set();
 
   checkingPieces.forEach((checkingPiece) => {
-    if (
-      (checkingPiece[0].toLowerCase() === 'q' && checkingPiece[1] !== yourKing.attr('id')[1]) ||
-      checkingPiece[0] === 'b'
-    ) {
-      const squares = movePiecesDiag(checkingPiece, yourKing.attr('id'));
+    if ((checkingPiece[0].toLowerCase() === 'q' || checkingPiece[0] === 'b') && checkingPiece[1] !== kingPos[1]) {
+      const squares = movePiecesDiag(checkingPiece, kingPos);
       if (Array.isArray(squares)) tempPossibleSquares.add(...squares); // needs fix
     }
-    else if (checkingPiece[0].toLowerCase() === 'r' || checkingPiece[0].toLowerCase() === 'q') {
-      const squares = movePiecesVertLat(checkingPiece, yourKing.attr('id'));
+    if (
+      (checkingPiece[0].toLowerCase() === 'r' || checkingPiece[0].toLowerCase() === 'q') &&
+      (checkingPiece[1] === kingPos[1] || checkingPiece[2] === kingPos[2])
+    ) {
+      const squares = movePiecesVertLat(checkingPiece, kingPos);
       if (Array.isArray(squares)) tempPossibleSquares.add(...squares);
     }
     tempPossibleSquares.add(checkingPiece[1] + checkingPiece[2]); // can capture the checking piece to stop the check
@@ -32,30 +31,28 @@ export default function getPossibleMoves(checkingPieces, yourKing) {
     // if a piece going to this square triggers a discovered check, then dont put this into possible moves
     // since you have the possible squares in which the pieces must go into to protect the king, the next step is to check every piece and see if
     // they can move to protect the king, (not including the king)
+    console.log(piece);
     tempPossibleSquares.forEach((square) => {
-      if (moveFunctions[piece.id[0]](square, piece.id[1] + piece.id[2])) {
-        possibleMoves.push(piece.id, square);
+      if (moveFunctions[piece[0]](square, piece[1] + piece[2])) {
+        possibleMoves.push([piece, square]);
+        console.log(piece, square);
       }
     });
   });
   console.log(possibleMoves, 'possibleMoves');
-
-  return tempPossibleSquares;
 }
 
-export function isCheck(kingPos) {
-  let pieces = $('#' + kingPos).attr('color')[0] === 'b' ? $('span[class*=white]') : $('span[class*=black]'); //select all of the pieces except for the kings as they cant check each other
+export function isCheck(kingPos, piecesArray) {
+  const pieces = findAllPieces(piecesArray, kingPos[0].toLowerCase() === kingPos[0] ? 'b' : 'w'); //select all of the pieces except for the kings as they cant check each other
   // checks if the move is legal by putting in the destination and looking for checks before actually appending to new square
-  const potential_check_pieces = [...pieces];
-  const checking_pieces = [];
-  potential_check_pieces.forEach((piece) => {
-    if (
-      piece.id[0].toUpperCase() !== 'K' &&
-      moveFunctions[piece.id[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece.id)
-    )
-      checking_pieces.push(piece.id); // if a piece is attacking a king
+  const potentialCheckingPieces = [...pieces];
+  console.log(potentialCheckingPieces);
+  const checkingPieces = [];
+  potentialCheckingPieces.forEach((piece) => {
+    console.log('S' + kingPos[1] + kingPos[2], piece);
+    if (moveFunctions[piece[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece)) checkingPieces.push(piece); // if a piece is attacking a king
   });
-  return checking_pieces.length > 0 ? checking_pieces : false;
+  return checkingPieces.length > 0 ? checkingPieces : false;
 }
 
 function movePiecesDiag(destination, origin) {
@@ -286,7 +283,6 @@ function getVerticalMoves(position, color) {
 
   for (let i = 0; i < differenceFromTop; i++) {
     let square = $('#S' + position[0] + (positionNum + i + 1));
-    console.log(square);
 
     if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
@@ -300,7 +296,6 @@ function getVerticalMoves(position, color) {
   }
   for (let i = 0; i < differenceFromBottom; i++) {
     let square = $('#S' + position[0] + (positionNum - i - 1));
-    console.log(square);
     if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
         possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
@@ -311,7 +306,6 @@ function getVerticalMoves(position, color) {
       possibleMoves.push(square[0].id[1] + square[0].id[2]);
     }
   }
-  console.log(possibleMoves);
   return possibleMoves;
 }
 
@@ -326,7 +320,6 @@ function getRookMoves(position, color) {
 
   for (let i = 0; i < differenceFromLeft; i++) {
     let square = $('#S' + String.fromCharCode(positionCharCode - i - 1) + positionNum);
-    console.log(square);
 
     if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
@@ -340,7 +333,6 @@ function getRookMoves(position, color) {
   }
   for (let i = 0; i < differenceFromRight; i++) {
     let square = $('#S' + String.fromCharCode(positionCharCode + i + 1) + positionNum);
-    console.log(square);
 
     if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
@@ -375,7 +367,6 @@ function getBishopMoves(position, color) {
       squares.push([$('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum + i + 1))[0], 'ltDiag']);
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
-      console.log(square);
 
       if (square[0].firstChild) {
         if (color !== getColor(square[0].firstChild.id[0])) {
@@ -398,7 +389,6 @@ function getBishopMoves(position, color) {
 
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
-      console.log(square);
       if (square[0].firstChild) {
         if (color !== getColor(square[0].firstChild.id[0])) {
           possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
@@ -407,7 +397,6 @@ function getBishopMoves(position, color) {
         else if (square[1] === 'rtDiag') rtDiag = false;
       }
       else if (!square[0].firstChild) {
-        console.log(square[0]);
         possibleMoves.push(square[0].id[1] + square[0].id[2]);
       }
     }
@@ -438,7 +427,6 @@ function getQueenMoves(position, color) {
       squares.push([$('#S' + String.fromCharCode(positionCharCode - i - 1) + (positionNum + i + 1))[0], 'ltDiag']);
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
-      console.log(square);
 
       if (square[0].firstChild) {
         if (color !== getColor(square[0].firstChild.id[0])) {
@@ -463,7 +451,6 @@ function getQueenMoves(position, color) {
 
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
-      console.log(square);
       if (square[0].firstChild) {
         if (color !== getColor(square[0].firstChild.id[0])) {
           possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
@@ -473,7 +460,6 @@ function getQueenMoves(position, color) {
         else if (square[1] === 'rtDiag') rtDiag = false;
       }
       else if (!square[0].firstChild) {
-        console.log(square[0]);
         possibleMoves.push(square[0].id[1] + square[0].id[2]);
       }
     }

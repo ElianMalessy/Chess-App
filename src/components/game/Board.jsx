@@ -1,21 +1,23 @@
 import { useContext, useEffect, useState, useRef, memo } from 'react';
 import classes from './Board.module.css';
 import PieceMemo from './Piece';
-import { PlayerContext, CheckContext, TurnContext } from './Game';
-import $ from 'jquery';
+import { PlayerContext, CheckContext, TurnContext, BoardContext } from './Game';
 import findPossibleMoves from './moveFunctions';
+import findPositionOf, { findAllPieces } from './findBoardIndex';
 
 function Board({ currentUser }) {
-  const FEN = useRef(localStorage.getItem('FEN'));
-  if (!FEN.current) FEN.current = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+  const boardArray = useContext(BoardContext);
   const checkPiece = useContext(CheckContext);
   const { turn } = useContext(TurnContext);
+  const playerColor = useContext(PlayerContext);
 
   const [board, setBoard] = useState([]);
   const boardFiller = useRef([]);
-
   const pColor = useRef(null);
-  const playerColor = useContext(PlayerContext);
+
+  const FEN = useRef(localStorage.getItem('FEN'));
+  if (!FEN.current) FEN.current = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+
   let temp_color = localStorage.getItem(currentUser);
   if (temp_color) pColor.current = temp_color;
   else pColor.current = playerColor;
@@ -120,19 +122,21 @@ function Board({ currentUser }) {
       if (checkPiece) {
         console.log(checkPiece);
         let kingPos;
+
         if (turn[0] === 'w') {
-          kingPos = $('[id^=K][class*=white]');
+          kingPos = findPositionOf(boardArray, 'K');
         }
-        else {
-          kingPos = $('[id^=k][class*=black]');
+        else if (turn[0] === 'b') {
+          kingPos = findPositionOf(boardArray, 'k');
         }
-        findPossibleMoves(checkPiece, kingPos); // only use for determining checkmate and possible moves if there is a check
+        findPossibleMoves(checkPiece, kingPos, ...findAllPieces(boardArray, turn[0]));
+        // only use for determining checkmate and possible moves if there is a check
       }
     },
     //eslint-disable-next-line
     [checkPiece]
   );
-  
+
   return (
     <div className={classes.chessboard} id='board'>
       {board}

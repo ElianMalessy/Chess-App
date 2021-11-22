@@ -27,8 +27,8 @@ export default function CapturedPanel({ children }) {
         firstUpdate2.current = false;
         return;
       }
-      $(piece).appendTo('#end' + (all_pieces.length - 1));
-      $(piece).css('opacity', 1);
+      const newPiece = $('<span> </span>').addClass(piece);
+      $('#end' + (all_pieces.length - 1)).append(newPiece);
       setNum((n) => n + 1);
     },
     [piece, all_pieces]
