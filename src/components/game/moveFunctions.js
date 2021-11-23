@@ -7,7 +7,6 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray) {
   // use isCheck on all of the possibilities, if its a bishop for example, that means that the move either has to be the king moving out of the way
   // (that can be true for all of them, as long as that next position doesnt return a true in isCheck()), or it can be a piece moving into that diag
   // if there are no possible moves to stop isCheck() as in it always returns true, then it is checkmate and the game ends
-
   const possibleMoves = [];
   const tempPossibleSquares = new Set();
 
@@ -46,10 +45,8 @@ export function isCheck(kingPos, piecesArray) {
   const pieces = findAllPieces(piecesArray, kingPos[0].toLowerCase() === kingPos[0] ? 'b' : 'w'); //select all of the pieces except for the kings as they cant check each other
   // checks if the move is legal by putting in the destination and looking for checks before actually appending to new square
   const potentialCheckingPieces = [...pieces];
-  console.log(potentialCheckingPieces);
   const checkingPieces = [];
   potentialCheckingPieces.forEach((piece) => {
-    console.log('S' + kingPos[1] + kingPos[2], piece);
     if (moveFunctions[piece[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece)) checkingPieces.push(piece); // if a piece is attacking a king
   });
   return checkingPieces.length > 0 ? checkingPieces : false;

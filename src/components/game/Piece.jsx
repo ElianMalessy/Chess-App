@@ -60,10 +60,7 @@ export default memo(function PieceMemo({ color, position }) {
       move.data('lastTransform', { dx: newDx, dy: newDy });
     });
   }
-  // check if the move being made will cause a check to ones own king, if so move is illegal
-  // change id of moving piece to "NaN" and pretend as if its in its moved position on the destination square
-  // do this while checking for attacks on ones on king (during ones own turn) but not while checking for attacks on the opponents king
-  // at that time you shouldve already switched the id from NaN to the destination position and put it in the destination square on the DOM
+ 
   function endDrag(mouse) {
     const moving_piece = $(mouse.target);
     const original_id = mouse.target.id;
@@ -79,23 +76,13 @@ export default memo(function PieceMemo({ color, position }) {
 
     // if same square as original, then end
     if (destinationSquare && !(destinationSquare[1] === original_id[1] && destinationSquare[2] === original_id[2])) {
-      const whiteKingPos = findPositionOf(boardArray, 'K');
-      const blackKingPos = findPositionOf(boardArray, 'k');
-
       const final_id = original_id[0] + destinationPosition;
       $('#' + original_id).attr('id', final_id);
 
-      const column = original_id.charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
-      const row = parseInt(original_id[2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
-
-      const piece = boardArray[7 - row][column];
-      const tempBoardArray = boardArray;
-      tempBoardArray[7 - row][column] = '1'; // prev square is now empty
-      const newColumn = final_id.charCodeAt(1) - 97;
-      const newRow = parseInt(final_id[2]) - 1;
-      tempBoardArray[7 - newRow][newColumn] = piece;
-
-      const check = turn === 'white' ? isCheck(whiteKingPos, tempBoardArray) : isCheck(blackKingPos, tempBoardArray);
+      // weird shit happening with the boardArray having been updated before this block of code is even executed
+      const whiteKingPos = findPositionOf(boardArray, 'K'); 
+      const blackKingPos = findPositionOf(boardArray, 'k');
+      const check = turn === 'white' ? isCheck(whiteKingPos, boardArray) : isCheck(blackKingPos, boardArray);
       if (check) {
         // if the move causes a discovered check to ones own king, then it is not a legal move
         // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
@@ -125,7 +112,7 @@ export default memo(function PieceMemo({ color, position }) {
         $('#' + final_id).appendTo('#S' + destinationPosition);
         endLocation.push(original_id, final_id);
 
-        const check1 = turn === 'white' ? isCheck(blackKingPos, tempBoardArray) : isCheck(whiteKingPos, tempBoardArray);
+        const check1 = turn === 'white' ? isCheck(blackKingPos, boardArray) : isCheck(whiteKingPos, boardArray);
         if (check1) {
           console.log(check1);
           endLocation.push(check1);
@@ -148,30 +135,16 @@ export default memo(function PieceMemo({ color, position }) {
   let pieceClass = color + '-' + position[0].toLowerCase();
   const Classes = classNames(classes[color], classes[pieceClass]);
   if (playerColor) {
-    if (position[0].toLowerCase() === 'p' || playerColor === 'spectator') {
-      return (
-        <div
-          className={Classes}
-          onMouseDown={drag}
-          onMouseUp={endDrag}
-          id={position}
-          style={{ pointerEvents: turn === color && playerColor === color ? 'inherit' : 'none' }}
-          color={color}
-        />
-      );
-    }
-    else {
-      return (
-        <div
-          className={Classes}
-          onMouseDown={drag}
-          onMouseUp={endDrag}
-          id={position}
-          style={{ pointerEvents: turn === color && playerColor === color ? 'inherit' : 'none' }}
-          color={color}
-        />
-      );
-    }
+    return (
+      <div
+        className={Classes}
+        onMouseDown={drag}
+        onMouseUp={endDrag}
+        id={position}
+        style={{ pointerEvents: turn === color && playerColor === color ? 'inherit' : 'none' }}
+        color={color}
+      />
+    );
   }
   else {
     return (

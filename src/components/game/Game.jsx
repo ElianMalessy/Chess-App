@@ -14,7 +14,6 @@ export const PlayerContext = createContext();
 export const TurnContext = createContext({ turn: ['white', 'pe2', 'pe4'], setTurn: () => {} });
 export const BoardContext = createContext();
 export const EnPassentContext = createContext();
-export const CheckContext = createContext();
 
 export default memo(function Game(props) {
   // default FEN notation: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
@@ -83,8 +82,10 @@ export default memo(function Game(props) {
       }
       tempboard.push(row);
     }
+    console.log(tempboard);
     setBoardArray(tempboard);
   }, []);
+
   const fixTurnFromFEN = useCallback((FEN) => {
     // switching from b in FEN to w immediately after a white move, in both local storage and in firebase
     for (let i = FEN.length - 1; i >= 0; i--) {
@@ -148,29 +149,32 @@ export default memo(function Game(props) {
   useEffect(
     () => {
       userHandler(gameID.current, currentUserID.current, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
-      async function userHandler(gameID, pushVal, FEN) {
+      async function userHandler(gameID, playerID, FEN) {
         const dbRef = ref(database, 'Games/' + gameID);
         console.log('newUserHandler');
         await get(dbRef)
           .then((snapshot) => {
             if (snapshot.exists()) {
               let p1 = snapshot.val().player1;
-              if (snapshot.val().player2 === undefined && pushVal !== p1) {
+              let p2 = snapshot.val().player2;
+              console.log(snapshot.val(), playerID);
+              if (p2 === undefined && playerID !== p1) {
                 // new user, color = black
                 setplayerColor('black');
                 if (foundColor.current === false) localStorage.setItem(currentUserID.current, 'black');
 
                 update(dbRef, {
-                  player2: pushVal
+                  player2: playerID
                 }).then(() => fixStuffOnLoad(false));
               }
               else {
                 // old users
-                if (pushVal === p1) {
+                console.log(playerID, p2)
+                if (playerID === p1) {
                   setplayerColor('white');
                   if (foundColor.current === false) localStorage.setItem(currentUserID.current, 'white');
                 }
-                else {
+                else if (playerID === p2) {
                   setplayerColor('black');
                   if (foundColor.current === false) localStorage.setItem(currentUserID.current, 'black');
                 }
@@ -183,7 +187,7 @@ export default memo(function Game(props) {
               localStorage.setItem(currentUserID.current, 'white');
               localStorage.setItem('FEN', FEN);
               set(dbRef, {
-                player1: pushVal,
+                player1: playerID,
                 FEN: FEN
               });
               fixStuffOnLoad(false);
@@ -205,6 +209,7 @@ export default memo(function Game(props) {
       if (turn.length === 5) return;
 
       let newLocation = [turn[1], turn[2]];
+      console.log(newLocation, boardArray);
       setLastMoveFromOtherUser.current = false;
       setFENFromOtherUser.current = false;
 
@@ -241,7 +246,7 @@ export default memo(function Game(props) {
 
       temp_FEN += ' ' + turn[0][0];
       if (true) temp_FEN += ' KQkq'; // for castling ***NEEDS FIX***
-      if (piece[0].toLowerCase() === 'p' && Math.abs(newLocation[0][2] - newLocation[1][2]) === 2) {
+      if (piece[0].toLowerCase() === 'p' && Math.abs(parseInt(newLocation[0][2]) - parseInt(newLocation[1][2])) === 2) {
         // pe2 to pe4 gets an enPassentSquare of e3
         let enPassentSquare;
         turn[0] === 'black'
@@ -251,6 +256,7 @@ export default memo(function Game(props) {
       }
       else temp_FEN += ' -';
 
+      console.log(temp_FEN);
       setBoardArray(tempBoard);
       setFEN(temp_FEN);
       localStorage.setItem('FEN', temp_FEN);
@@ -285,6 +291,7 @@ export default memo(function Game(props) {
       // if snapshot.val() === FEN that means that the user who updated the FEN in the first place is running this
       if (snapshot.exists() && setFENFromOtherUser.current === true && snapshot.val() !== FEN) {
         const temp_FEN = snapshot.val();
+        console.log(snapshot.val());
         fixBoardArray(temp_FEN);
         localStorage.setItem('FEN', temp_FEN);
         setFEN(temp_FEN);
@@ -292,7 +299,9 @@ export default memo(function Game(props) {
       }
       else if (snapshot.exists() && setFENFromOtherUser.current === false) {
         setFENFromOtherUser.current = true;
+        off(dbRef);
       }
+      off(dbRef);
     });
   });
 
@@ -311,6 +320,7 @@ export default memo(function Game(props) {
         setCheck(snapshot.val());
         off(dbRef);
       }
+      off(dbRef);
     });
   });
 
@@ -325,6 +335,7 @@ export default memo(function Game(props) {
         if (oldLocation.length === 0) return;
 
         let destination = boardArray[newLocation[1].charCodeAt(1) - 'a'.charCodeAt(0)][8 - parseInt(newLocation[1][2])];
+        console.log(boardArray, newLocation[1].charCodeAt(1) - 'a'.charCodeAt(0), 8 - parseInt(newLocation[1][2]));
         if (destination !== '1') {
           $('#' + destination + newLocation[1][1] + newLocation[1][2]).remove();
         }
@@ -367,9 +378,7 @@ export default memo(function Game(props) {
                 <BoardContext.Provider value={boardArray}>
                   <TurnContext.Provider value={turnValue}>
                     <EnPassentContext.Provider value={enPassentSquare}>
-                      <CheckContext.Provider value={check}>
-                        <BoardMemo currentUser={currentUserID.current} FEN={FEN} />
-                      </CheckContext.Provider>
+                      <BoardMemo FEN={FEN} check={check} />
                     </EnPassentContext.Provider>
                   </TurnContext.Provider>
                 </BoardContext.Provider>
