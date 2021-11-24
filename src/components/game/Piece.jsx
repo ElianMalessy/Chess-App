@@ -10,7 +10,7 @@ import findPositionOf from './findBoardIndex';
 export default memo(function PieceMemo({ color, position }) {
   const { turn, setTurn } = useContext(TurnContext);
   const { setPiece } = useContext(CapturedPieces);
-  const { enPassentSquare } = useContext(EnPassentContext);
+  const enPassentSquare = useContext(EnPassentContext);
   const playerColor = useContext(PlayerContext);
   const boardArray = useContext(BoardContext);
 
@@ -60,7 +60,7 @@ export default memo(function PieceMemo({ color, position }) {
       move.data('lastTransform', { dx: newDx, dy: newDy });
     });
   }
- 
+
   function endDrag(mouse) {
     const moving_piece = $(mouse.target);
     const original_id = mouse.target.id;
@@ -80,9 +80,10 @@ export default memo(function PieceMemo({ color, position }) {
       $('#' + original_id).attr('id', final_id);
 
       // weird shit happening with the boardArray having been updated before this block of code is even executed
-      const whiteKingPos = findPositionOf(boardArray, 'K'); 
+      const whiteKingPos = findPositionOf(boardArray, 'K');
       const blackKingPos = findPositionOf(boardArray, 'k');
-      const check = turn === 'white' ? isCheck(whiteKingPos, boardArray) : isCheck(blackKingPos, boardArray);
+      console.log(whiteKingPos, blackKingPos, boardArray);
+      const check = playerColor === 'white' ? isCheck(whiteKingPos, boardArray) : isCheck(blackKingPos, boardArray);
       if (check) {
         // if the move causes a discovered check to ones own king, then it is not a legal move
         // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
@@ -112,7 +113,7 @@ export default memo(function PieceMemo({ color, position }) {
         $('#' + final_id).appendTo('#S' + destinationPosition);
         endLocation.push(original_id, final_id);
 
-        const check1 = turn === 'white' ? isCheck(blackKingPos, boardArray) : isCheck(whiteKingPos, boardArray);
+        const check1 = playerColor === 'white' ? isCheck(blackKingPos, boardArray) : isCheck(whiteKingPos, boardArray);
         if (check1) {
           console.log(check1);
           endLocation.push(check1);

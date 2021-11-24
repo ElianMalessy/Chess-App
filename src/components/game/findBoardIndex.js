@@ -23,5 +23,6 @@ export function findAllPieces(arrayofArray, color) {
         allPieces.push(arrayofArray[i][j] + String.fromCharCode('a'.charCodeAt(0) + j) + (8 - i));
     }
   }
+  console.log(allPieces);
   return allPieces;
 }

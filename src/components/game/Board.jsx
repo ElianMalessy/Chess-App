@@ -9,7 +9,7 @@ function Board({ FEN, check }) {
   const boardArray = useContext(BoardContext);
   const playerColor = useContext(PlayerContext);
   const { turn } = useContext(TurnContext);
-  
+
   const [board, setBoard] = useState([]);
   const boardFiller = useRef([]);
 

@@ -47,12 +47,13 @@ export function isCheck(kingPos, piecesArray) {
   const potentialCheckingPieces = [...pieces];
   const checkingPieces = [];
   potentialCheckingPieces.forEach((piece) => {
-    if (moveFunctions[piece[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece)) checkingPieces.push(piece); // if a piece is attacking a king
+    if (moveFunctions[piece[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece, piecesArray))
+      checkingPieces.push(piece); // if a piece is attacking a king
   });
   return checkingPieces.length > 0 ? checkingPieces : false;
 }
 
-function movePiecesDiag(destination, origin) {
+function movePiecesDiag(destination, origin, board) {
   let destLetter = destination[1].charCodeAt(0);
   let origLetter = origin[1].charCodeAt(0);
   const arrayOfAttack = [];
@@ -65,7 +66,7 @@ function movePiecesDiag(destination, origin) {
       destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) + i) : (num = parseInt(origin[2]) - i);
       let str = String.fromCharCode(origLetter + i) + num;
       arrayOfAttack.push(str);
-      if ($('[id$=' + str)[0].firstChild !== null) return false;
+      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
     }
   }
   else {
@@ -74,69 +75,59 @@ function movePiecesDiag(destination, origin) {
       destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) - i) : (num = parseInt(origin[2]) + i);
       let str = String.fromCharCode(origLetter + i) + num;
       arrayOfAttack.push(str);
-      if ($('[id$=' + str)[0].firstChild !== null) return false;
+      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
     }
   }
   return arrayOfAttack;
 }
 
-function movePiecesVertLat(destination, origin) {
+function movePiecesVertLat(destination, origin, board) {
   let destLetter = destination[1].charCodeAt(0);
   let origLetter = origin[1].charCodeAt(0);
   console.log(destination, origin);
   const arrayOfAttack = [];
 
+  // distance = 1 means nothing can be in the way of the move except the destination itself
   if (
     (Math.abs(destLetter - origLetter) === 1 && destination[2] === origin[2]) ||
     (Math.abs(destination[2] - origin[2]) === 1 && destLetter === origLetter)
   )
     return true;
-  else if (destLetter - origLetter > 0) {
-    // distance = 1 means nothing can be in the way
+  else if (destLetter > origLetter) {
     for (let i = 1; i < destLetter - origLetter; i++) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
-      console.log(str, $('[id$=' + str)[0].firstChild);
       arrayOfAttack.push(str);
-      if ($('[id$=' + str)[0].firstChild !== null) return false;
+
+      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - parseInt(origin[2])] !== '1') return false;
     }
   }
-  else if (destLetter - origLetter < 0) {
+  else if (destLetter < origLetter) {
     for (let i = -1; i > destLetter - origLetter; i--) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
-      console.log(str, $('[id$=' + str)[0].firstChild);
-
       arrayOfAttack.push(str);
-      if ($('[id$=' + str)[0].firstChild !== null) {
-        console.log(str, 'here');
-        return false;
-      }
+
+      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - parseInt(origin[2])] !== '1') return false;
     }
     return arrayOfAttack;
   }
   else {
     // vertical movement
-    if (destination[2] - origin[2] > 0) {
+    if (destination[2] > origin[2]) {
       for (let i = 1; i < destination[2] - origin[2]; i++) {
         let num = parseInt(origin[2]) + i;
-        let str = String.fromCharCode(origLetter) + num;
+        let str = origin[1] + num;
 
         arrayOfAttack.push(str);
-        if ($('[id$=' + str)[0].firstChild !== null) {
-          console.log(str);
-          return false;
-        }
+        if (board[origLetter - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
       }
     }
-    else if (destination[2] - origin[2] < 0) {
+    else if (destination[2] < origin[2]) {
       for (let i = -1; i > destination[2] - origin[2]; i--) {
         let num = parseInt(origin[2]) + i;
-        let str = String.fromCharCode(origLetter) + num;
+        let str = origin[1] + num;
 
         arrayOfAttack.push(str);
-        if ($('[id$=' + str)[0].firstChild !== null) {
-          console.log(str);
-          return false;
-        }
+        if (board[origLetter - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
       }
     }
     console.log(arrayOfAttack);
@@ -144,7 +135,7 @@ function movePiecesVertLat(destination, origin) {
   }
 }
 
-function getColor(pieceType) {
+export function getColor(pieceType) {
   if (pieceType.toUpperCase() === pieceType) return 'w';
   else return 'b';
 }
@@ -203,6 +194,7 @@ function getWhitePawnMoves(position, color, enPassentSquare) {
     possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
 
   if (
+    enPassentSquare &&
     position[1] === '5' &&
     enPassentSquare[1] === '5' &&
     Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
@@ -237,6 +229,7 @@ function getBlackPawnMoves(position, color, enPassentSquare) {
     possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
 
   if (
+    enPassentSquare &&
     position[1] === '4' &&
     enPassentSquare[1] === '4' &&
     Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
@@ -474,29 +467,29 @@ export const moveFunctions = {
     )
       return true;
   },
-  b: function Bishop(destination, origin) {
+  b: function Bishop(destination, origin, board) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     if (Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2])) {
-      if (movePiecesDiag(destination, origin)) return true;
+      if (movePiecesDiag(destination, origin, board)) return true;
     }
   },
-  r: function Rook(destination, origin) {
+  r: function Rook(destination, origin, board) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     if (destLetter === origLetter || destination[2] === origin[2]) {
-      if (movePiecesVertLat(destination, origin)) return true;
+      if (movePiecesVertLat(destination, origin, board)) return true;
     }
   },
-  q: function Queen(destination, origin) {
+  q: function Queen(destination, origin, board) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
-    if ((destLetter === origLetter || destination[2] === origin[2]) && movePiecesVertLat(destination, origin)) {
+    if (movePiecesVertLat(destination, origin, board)) {
       return true;
     }
     else if (
       Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2]) &&
-      movePiecesDiag(destination, origin)
+      movePiecesDiag(destination, origin, board)
     )
       return true;
   },
@@ -509,7 +502,7 @@ export const moveFunctions = {
     )
       return true;
   },
-  p: function Pawn(destination, origin) {
+  p: function Pawn(destination, origin, board) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
     let pawn = $('#' + origin);

@@ -1,6 +1,6 @@
 /* eslint-disable default-case */
 import { useState, useRef, useEffect, Fragment, memo, useCallback } from 'react';
-import { Alert, Image, Container, Nav, Button, Row } from 'react-bootstrap';
+import { Alert, Image, Container, Nav, Button, Row, FormControl } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
 import classes from './Dashboard.module.css';
@@ -14,7 +14,8 @@ export default memo(function Dashboard() {
   const [error, setError] = useState('');
   const { currentUser, logout, updateProfilePic } = useAuth();
   const history = useHistory();
-  const randomURL = useRef(Math.floor(Math.random() * 100 + 1));
+  const gameID = useRef(Math.floor(Math.random() * 100 + 1));
+  const [randomURL, setRandomURL] = useState('localhost:3000/Game/' + gameID.current);
 
   async function handleLogout() {
     setError('');
@@ -111,109 +112,119 @@ export default memo(function Dashboard() {
 
   return (
     <Fragment>
-      <Modal
-        changeProfilePic={changeProfilePic}
-        setOpen={setInputField}
-        isOpen={inputField}
-        profilePic={profilePic}
-        setProfilePic={setProfilePic}
-      />
-      <header className={classes.header}>
-        <Nav>
-          <div className={classes.logo}>
-            <Image
-              src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUZZloLNz2F11mD77ey5TLZezGlFueOWuFqw&usqp=CAU'
-              alt='logo'
-              className={classes.logoImage}
-              onClick={() => history.push('/development')}
-              roundedCircle
-            />
-            WeChess
-          </div>
-          <ul>
-            <li>
-              <Link to='/Game/1' className={`h-50 ${classes.headerLink}`}>
-                Testing
-              </Link>
-            </li>
-            <li>
-              <Link to={`/Game/${randomURL.current}`} className={`h-50 ${classes.headerLink}`}>
-                Play
-              </Link>
-            </li>
-          </ul>
-        </Nav>
-        <Nav className={classes.profileNav}>
-          <div
-            className='d-flex align-items-center justify-content-center'
-            style={{
-              overflow: 'hidden',
-              height: '4.5rem',
-              width: '4.5rem',
-              borderRadius: '50%',
-              transform: 'translate(-1rem, 0)'
-            }}
-          >
-            <Image
-              src={profilePic}
-              alt='profile-picture'
-              id='profile-pic'
-              onClick={() => setInputField(true)}
-              className={classes.profilePic}
-            />
-          </div>
-          <div ref={clickRef} className='d-flex align-items-center'>
-            <Button
-              className={classes.dropDownButton}
-              onClick={() => (hidden === true ? setHidden(false) : setHidden(true))}
-              style={{ boxShadow: 'none' }}
+      <div className={classes.page}>
+        <Modal
+          changeProfilePic={changeProfilePic}
+          setOpen={setInputField}
+          isOpen={inputField}
+          profilePic={profilePic}
+          setProfilePic={setProfilePic}
+        />
+        <header className={classes.header}>
+          <Nav>
+            <div className={classes.logo}>
+              <Image
+                src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUZZloLNz2F11mD77ey5TLZezGlFueOWuFqw&usqp=CAU'
+                alt='logo'
+                className={classes.logoImage}
+                onClick={() => history.push('/development')}
+                roundedCircle
+              />
+              WeChess
+            </div>
+            <ul>
+              <li>
+                <Link to='/Game/1' className={`h-50 ${classes.headerLink}`}>
+                  Testing
+                </Link>
+              </li>
+              <li>
+                <Link to={`/Game/${gameID.current}`} className={`h-50 ${classes.headerLink}`}>
+                  Play
+                </Link>
+              </li>
+            </ul>
+          </Nav>
+          <Nav className={classes.profileNav}>
+            <div
+              className='d-flex align-items-center justify-content-center'
+              style={{
+                overflow: 'hidden',
+                height: '4.5rem',
+                width: '4.5rem',
+                borderRadius: '50%',
+                transform: 'translate(-1rem, 0)'
+              }}
             >
-              <pre>
-                {currentUser && currentUser.displayName ? (
-                  currentUser.displayName
-                ) : currentUser && currentUser.email ? (
-                  currentUser.email
-                ) : (
-                  'anonymous'
-                )}
-                <i className='fa fa-chevron-down' style={{ marginLeft: '0.5rem' }} aria-hidden='true' />
-              </pre>
-              <div hidden={hidden} className={classes.dropDownMenu}>
-                <Link to='/update-profile' className={classes['dropdown-item']}>
-                  <i className='fa fa-user-circle-o' aria-hidden='true' /> Update Profile
-                </Link>
-                <Link to='#' className={classes['dropdown-item']} onClick={handleLogout}>
-                  <i className='fa fa-sign-out' aria-hidden='true' /> Logout
-                </Link>
-              </div>
-            </Button>
-          </div>
-        </Nav>
-      </header>
-      <Container className={`d-flex justify-content-center ${classes.bg}`} fluid>
-        <div style={{ alignSelf: 'flex-end' }}>
+              <Image
+                src={profilePic}
+                alt='profile-picture'
+                id='profile-pic'
+                onClick={() => setInputField(true)}
+                className={classes.profilePic}
+              />
+            </div>
+            <div ref={clickRef} className='d-flex align-items-center'>
+              <Button
+                className={classes.dropDownButton}
+                onMouseEnter={() => setHidden(false)}
+                onClick={() => setHidden(true)}
+                style={{ boxShadow: 'none' }}
+              >
+                <pre>
+                  {currentUser && currentUser.displayName ? (
+                    currentUser.displayName
+                  ) : currentUser && currentUser.email ? (
+                    currentUser.email
+                  ) : (
+                    'anonymous'
+                  )}
+                  <i className='fa fa-chevron-down' style={{ marginLeft: '0.5rem' }} aria-hidden='true' />
+                </pre>
+                <div hidden={hidden} className={classes.dropDownMenu}>
+                  <Link to='/update-profile' className={classes['dropdown-item']}>
+                    <i className='fa fa-user-circle-o' aria-hidden='true' /> Profile
+                  </Link>
+                  <Link to='#' className={classes['dropdown-item']} onClick={handleLogout}>
+                    <i className='fa fa-sign-out' aria-hidden='true' /> Logout
+                  </Link>
+                </div>
+              </Button>
+            </div>
+          </Nav>
+        </header>
+        <Container className={`d-flex justify-content-center h-100 w-100`} fluid>
           {error && <Alert variant='danger'>{error}</Alert>}
 
-          <Row className='d-flex align-items-center' style={{ height: '5rem' }}>
-            <input
-              id='playWithFriend'
-              spellCheck='false'
-              readOnly='readonly'
-              value={'localhost:3000/Game/' + randomURL.current}
+          <Row
+            className={`d-flex justify-content-center align-items-center ${classes.linkRow}`}
+            style={{ alignSelf: 'flex-end', zIndex: 100 }}
+          >
+            <FormControl
+              value={randomURL}
               className={classes.linkInput}
+              onChange={(e) => setRandomURL(e.target.value)}
+              style={{ fontSize: '1.25rem' }}
             />
+
             <Button
               className={classes.roundedCirc}
               onClick={() => {
-                navigator.clipboard.writeText('localhost:3000/Game/' + randomURL.current);
+                navigator.clipboard.writeText(randomURL);
                 alert('Copied to clipboard');
               }}
             >
               <i className='fa fa-link' />
             </Button>
           </Row>
-        </div>
-      </Container>
+        </Container>
+      </div>
+
+      <div className={classes.shape}>
+        <svg data-name='Layer 1' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'>
+          <path d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' />
+        </svg>
+      </div>
     </Fragment>
   );
 });

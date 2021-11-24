@@ -9,6 +9,7 @@ import { database } from '../../firebase';
 import { ref, update, set, get, onValue, off } from '@firebase/database';
 import { useAuth } from '../../contexts/AuthContext';
 import { Container, Row, Col } from 'react-bootstrap';
+import { getColor } from './moveFunctions';
 
 export const PlayerContext = createContext();
 export const TurnContext = createContext({ turn: ['white', 'pe2', 'pe4'], setTurn: () => {} });
@@ -82,7 +83,6 @@ export default memo(function Game(props) {
       }
       tempboard.push(row);
     }
-    console.log(tempboard);
     setBoardArray(tempboard);
   }, []);
 
@@ -157,7 +157,6 @@ export default memo(function Game(props) {
             if (snapshot.exists()) {
               let p1 = snapshot.val().player1;
               let p2 = snapshot.val().player2;
-              console.log(snapshot.val(), playerID);
               if (p2 === undefined && playerID !== p1) {
                 // new user, color = black
                 setplayerColor('black');
@@ -169,7 +168,6 @@ export default memo(function Game(props) {
               }
               else {
                 // old users
-                console.log(playerID, p2)
                 if (playerID === p1) {
                   setplayerColor('white');
                   if (foundColor.current === false) localStorage.setItem(currentUserID.current, 'white');
@@ -201,6 +199,7 @@ export default memo(function Game(props) {
     [fixStuffOnLoad]
   );
 
+  const [enPassentSquare, setEnpassentSquare] = useState(null);
   const setLastMoveFromOtherUser = useRef(true);
   const setFENFromOtherUser = useRef(true);
   useEffect(
@@ -208,19 +207,18 @@ export default memo(function Game(props) {
       // if turn is 'white' or 'black' then this is the wrong user/socket as it has no newLocation
       if (turn.length === 5) return;
 
-      let newLocation = [turn[1], turn[2]];
-      console.log(newLocation, boardArray);
+      let oldToNewLocations = [turn[1], turn[2]];
       setLastMoveFromOtherUser.current = false;
       setFENFromOtherUser.current = false;
 
-      let column = newLocation[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
-      let row = parseInt(newLocation[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
+      let column = oldToNewLocations[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
+      let row = parseInt(oldToNewLocations[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
 
       let piece = boardArray[7 - row][column];
       const tempBoard = boardArray;
       tempBoard[7 - row][column] = '1'; // prev square is now empty
-      let newColumn = newLocation[1].charCodeAt(1) - 97;
-      let newRow = parseInt(newLocation[1][2]) - 1;
+      let newColumn = oldToNewLocations[1].charCodeAt(1) - 97;
+      let newRow = parseInt(oldToNewLocations[1][2]) - 1;
       tempBoard[7 - newRow][newColumn] = piece;
 
       // counts pieces from left to right, counting up 1's inbetween pieces to get new FEN
@@ -246,23 +244,30 @@ export default memo(function Game(props) {
 
       temp_FEN += ' ' + turn[0][0];
       if (true) temp_FEN += ' KQkq'; // for castling ***NEEDS FIX***
-      if (piece[0].toLowerCase() === 'p' && Math.abs(parseInt(newLocation[0][2]) - parseInt(newLocation[1][2])) === 2) {
+      if (
+        piece[0].toLowerCase() === 'p' &&
+        Math.abs(parseInt(oldToNewLocations[0][2]) - parseInt(oldToNewLocations[1][2])) === 2
+      ) {
         // pe2 to pe4 gets an enPassentSquare of e3
-        let enPassentSquare;
+        let enPassentSquare = oldToNewLocations[0][1];
         turn[0] === 'black'
-          ? (enPassentSquare = parseInt(newLocation[0][2]) + 1)
-          : (enPassentSquare = parseInt(newLocation[1][2]) + 1);
-        temp_FEN += ' ' + newLocation[0][1] + enPassentSquare;
-      }
-      else temp_FEN += ' -';
+          ? (enPassentSquare += parseInt(oldToNewLocations[0][2]) + 1)
+          : (enPassentSquare += parseInt(oldToNewLocations[1][2]) + 1);
 
-      console.log(temp_FEN);
+        setEnpassentSquare(enPassentSquare);
+        temp_FEN += ' ' + enPassentSquare;
+      }
+      else {
+        setEnpassentSquare(null);
+        temp_FEN += ' -';
+      }
+
       setBoardArray(tempBoard);
       setFEN(temp_FEN);
       localStorage.setItem('FEN', temp_FEN);
       update(ref(database, 'Games/' + gameID.current), {
         FEN: temp_FEN,
-        lastMove: newLocation
+        lastMove: oldToNewLocations
       });
       if (turn[3] !== undefined) {
         update(ref(database, 'Games/' + gameID.current), {
@@ -275,8 +280,7 @@ export default memo(function Game(props) {
         });
       }
 
-      if (playerColor === 'white') setTurn('black');
-      else setTurn('white');
+      playerColor === 'white' ? setTurn('black') : setTurn('white');
     },
     //eslint-disable-next-line
     [turn]
@@ -290,8 +294,8 @@ export default memo(function Game(props) {
     onValue(dbRef, (snapshot) => {
       // if snapshot.val() === FEN that means that the user who updated the FEN in the first place is running this
       if (snapshot.exists() && setFENFromOtherUser.current === true && snapshot.val() !== FEN) {
-        const temp_FEN = snapshot.val();
         console.log(snapshot.val());
+        const temp_FEN = snapshot.val();
         fixBoardArray(temp_FEN);
         localStorage.setItem('FEN', temp_FEN);
         setFEN(temp_FEN);
@@ -301,7 +305,6 @@ export default memo(function Game(props) {
         setFENFromOtherUser.current = true;
         off(dbRef);
       }
-      off(dbRef);
     });
   });
 
@@ -320,31 +323,35 @@ export default memo(function Game(props) {
         setCheck(snapshot.val());
         off(dbRef);
       }
-      off(dbRef);
     });
   });
 
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');
     onValue(dbRef, (snapshot) => {
-      if (!snapshot.exists()) return;
-      else if (setLastMoveFromOtherUser.current === false) setLastMoveFromOtherUser.current = true;
+      console.log(snapshot.val());
+      if (!snapshot.exists() || !playerColor || getColor(snapshot.val()[0][0]) === playerColor[0]) {
+        off(dbRef);
+        return;
+      }
+      else if (setLastMoveFromOtherUser.current === false) {
+        setLastMoveFromOtherUser.current = true;
+      }
       else {
-        let newLocation = snapshot.val();
-        let oldLocation = $('#' + newLocation[0]);
-        if (oldLocation.length === 0) return;
-
-        let destination = boardArray[newLocation[1].charCodeAt(1) - 'a'.charCodeAt(0)][8 - parseInt(newLocation[1][2])];
-        console.log(boardArray, newLocation[1].charCodeAt(1) - 'a'.charCodeAt(0), 8 - parseInt(newLocation[1][2]));
-        if (destination !== '1') {
-          $('#' + destination + newLocation[1][1] + newLocation[1][2]).remove();
+        const oldToNewLocation = snapshot.val();
+        const oldLocation = $('#' + oldToNewLocation[0]);
+        if (oldLocation.length === 0) {
+          off(dbRef);
+          return;
         }
 
-        oldLocation.appendTo($('#S' + newLocation[1][1] + newLocation[1][2]));
-        oldLocation.attr('id', oldLocation[0].id[0] + newLocation[1][1] + newLocation[1][2]);
+        const capturedPiece = $('#S' + oldToNewLocation[1][1] + oldToNewLocation[1][2])[0].firstChild;
+        if (capturedPiece) $('#' + capturedPiece.id).remove();
 
-        if (playerColor === 'white') setTurn('white');
-        else setTurn('black');
+        oldLocation.appendTo($('#S' + oldToNewLocation[1][1] + oldToNewLocation[1][2]));
+        oldLocation.attr('id', oldToNewLocation[1]);
+
+        playerColor === 'white' ? setTurn('white') : setTurn('black');
       }
       off(dbRef);
     });
@@ -357,13 +364,6 @@ export default memo(function Game(props) {
     [turn]
   );
 
-  const enPassentSquare = useMemo(
-    () => {
-      return FEN[FEN.length - 2] + FEN[FEN.length - 1];
-      // enPassent Position
-    },
-    [FEN]
-  );
   return (
     <div className={classes['mainPage']} id='page'>
       <Container>
