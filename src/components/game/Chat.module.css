@@ -1,0 +1,36 @@
+@import-normalize;
+::-webkit-scrollbar {
+  width: 1.15rem;
+}
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #a8a8a8c5;
+  border-radius: 1.15rem;
+  border: 6px solid transparent;
+  background-clip: content-box;
+}
+.chat {
+  height: 25rem;
+  list-style: none;
+  padding-left: 0;
+}
+.chatBox {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.textInput {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-bottom: 0.35rem;
+}
+.chatInput {
+  border-radius: 0.3rem;
+  border: 0.1rem solid grey;
+  flex: 0 0 auto;
+  margin-top: auto;
+}
+

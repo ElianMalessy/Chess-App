@@ -1,0 +1,156 @@
+@import-normalize;
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&display=swap');
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.header {
+  width: 100%;
+  height: 5rem;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  background-color: hsl(300, 2%, 10%);
+  padding: 0 10%;
+}
+svg {
+  position: relative;
+  display: block;
+  width: calc(113% + 1.3px);
+  height: 161px;
+  fill: #5c165a;
+}
+.shape {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  background: linear-gradient(rgb(24, 23, 23), rgb(14, 13, 13));
+}
+.logo {
+  font-size: 3rem;
+  color: white;
+  font-weight: 700;
+}
+
+.header strong {
+  font-size: 50;
+  color: black;
+}
+
+.header pre {
+  margin: 0;
+}
+.header ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+.header li {
+  margin-left: 2rem;
+}
+
+.headerLink {
+  color: #000000;
+  font-size: 1.75rem;
+  font-weight: 400;
+  font-family: 'Libre Baskerville', serif;
+}
+
+.headerLink:hover {
+  color: white;
+}
+.page {
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(#1d152b, #5c165a);
+}
+.profileNav {
+  transform: translate(6.5rem);
+}
+.dropDownButton {
+  background-color: inherit;
+  height: 2.5rem;
+}
+
+a {
+  text-decoration: none !important;
+}
+.dropDownMenu {
+  background-color: hsl(0, 9%, 98%);
+  transform: translate(0, 0.8rem);
+  position: absolute;
+  height: 6rem;
+  width: 9.5rem;
+  font-size: 1.25rem;
+  padding: 0.15rem 0.5rem 0.5rem 0.5rem;
+  text-align: left;
+  border: 0.15rem solid rgb(32, 32, 32);
+  border-radius: 0.5rem;
+}
+.dropdown-item {
+  text-align: left;
+  font-size: 1.4rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.25rem;
+  display: block;
+  color: rgb(31, 30, 30);
+}
+.dropdown-item:hover {
+  color: #5c165a;
+}
+
+.profilePic {
+  height: 4.5rem;
+  width: 4.5rem;
+}
+.logoImage {
+  height: 5rem;
+  width: 5rem;
+  margin-left: -6rem;
+  margin-right: 0.5rem;
+  mix-blend-mode: multiply;
+}
+
+.header img:hover {
+  cursor: pointer;
+}
+.profilePic:hover {
+  filter: brightness(50%);
+}
+
+.linkRow {
+  height: 5rem;
+  width: 30%;
+  position: relative;
+  animation: expand 3s;
+  top: 110%;
+}
+@keyframes expand {
+  0% {
+    top: 0px;
+  }
+  100% {
+    top: 110%;
+  }
+}
+
+.linkInput {
+  height: 60%;
+  text-align: left;
+  border-radius: 0.9rem;
+  flex-basis: 70%;
+}
+.roundedCirc {
+  height: 4rem !important;
+  width: 4rem !important;
+  font-size: 2rem !important;
+  border-radius: 50% !important;
+  margin-left: 0.5rem;
+  flex-basis: auto;
+}
