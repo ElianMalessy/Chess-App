@@ -2,7 +2,7 @@
 import $ from 'jquery';
 import findPositionOf, { findAllPieces, copyArrayofArray } from './findBoardIndex';
 
-export default function getPossibleMoves(checkingPieces, kingPos, piecesArray) {
+export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, boardArray) {
   // if there are checking pieces, then that means that the move that this player makes has to block those checking pieces
   // use isCheck on all of the possibilities, if its a bishop for example, that means that the move either has to be the king moving out of the way
   // (that can be true for all of them, as long as that next position doesnt return a true in isCheck()), or it can be a piece moving into that diag
@@ -19,7 +19,7 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray) {
       (checkingPiece[0].toLowerCase() === 'r' || checkingPiece[0].toLowerCase() === 'q') &&
       (checkingPiece[1] === kingPos[1] || checkingPiece[2] === kingPos[2])
     ) {
-      const squares = movePiecesVertLat(checkingPiece, kingPos);
+      const squares = movePiecesVertLat(checkingPiece, kingPos, boardArray);
       if (Array.isArray(squares)) tempPossibleSquares.add(...squares);
     }
     tempPossibleSquares.add(checkingPiece[1] + checkingPiece[2]); // can capture the checking piece to stop the check
@@ -185,7 +185,7 @@ function getWhitePawnMoves(position, color, enPassentSquare, boardArray) {
   const possibleMoves = [];
   const positionLetter = position.charCodeAt(0);
 
-  if (!$('#S' + position[0] + (parseInt(position[1]) + 1))[0].firstChild)
+  if (!$('#S' + position[0] + (parseInt(position[1]) + 1))[0].firstChild) // DO THE NORMAL PAWN MOVES
     possibleMoves.push(position[0] + (parseInt(position[1]) + 1));
   if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) + 2))[0].firstChild)
     possibleMoves.push(position[0] + (parseInt(position[1]) + 2));
@@ -199,18 +199,35 @@ function getWhitePawnMoves(position, color, enPassentSquare, boardArray) {
       ? $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) + 1))
       : null;
 
-  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
-    possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
-  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
-    possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
-
+  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - parseInt(position[1])][positionLetter - 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
+    }
+  }
+  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - parseInt(position[1])][positionLetter + 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
+    }
+  }
   if (
     enPassentSquare &&
     position[1] === '5' &&
     enPassentSquare[1] === '5' &&
     Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
   ) {
-    possibleMoves.push('E' + enPassentSquare[0] + '4'); // 'E' for enPassent
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    temp_board[7 - (parseInt(enPassentSquare[1]) - 1)][enPassentSquare.charCodeAt(0) - 'a'.charCodeAt(0)] =
+      color === 'w' ? 'P' : 'p';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('E' + enPassentSquare); // 'E' for enPassent
+    }
   }
 
   return possibleMoves;
@@ -234,10 +251,22 @@ function getBlackPawnMoves(position, color, enPassentSquare, boardArray) {
       ? $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) - 1))
       : null;
 
-  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color)
-    possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
-  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color)
-    possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
+  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 2)][positionLetter + 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
+    }
+  }
+  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 2)][positionLetter - 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
+    }
+  }
 
   if (
     enPassentSquare &&
@@ -245,7 +274,13 @@ function getBlackPawnMoves(position, color, enPassentSquare, boardArray) {
     enPassentSquare[1] === '4' &&
     Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
   ) {
-    possibleMoves.push('E' + enPassentSquare[0] + '3'); // 'E' for enPassent
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    temp_board[7 - (parseInt(enPassentSquare[1]) - 1)][enPassentSquare.charCodeAt(0) - 'a'.charCodeAt(0)] =
+      color === 'w' ? 'P' : 'p';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('E' + enPassentSquare);
+    }
   }
 
   return possibleMoves;
@@ -262,12 +297,16 @@ function getKnightMoves(position, color, boardArray) {
     const newNumber = positionNum + destinations[i][1];
     if (newNumber <= 8 && newNumber > 0 && newLetter >= 'a'.charCodeAt(0) && newLetter <= 'h'.charCodeAt(0)) {
       let square = $('#S' + String.fromCharCode(newLetter) + newNumber);
-      if (square[0].firstChild) {
+      let temp_board = copyArrayofArray(boardArray);
+      temp_board[7 - (newNumber - 1)][newLetter - 'a'.charCodeAt(0)] = color === 'w' ? 'K' : 'k';
+      temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+      if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) continue;
+      else if (square[0].firstChild) {
         if (color !== getColor(square[0].firstChild.id[0])) {
           possibleMoves.push('C' + square[0].id[1] + square[0].id[2]); // 'C' for captureHint
         }
       }
-      if (!square[0].firstChild) {
+      else if (!square[0].firstChild) {
         possibleMoves.push(square[0].id[1] + square[0].id[2]);
       }
     }
@@ -284,8 +323,13 @@ function getVerticalMoves(position, color, boardArray) {
 
   for (let i = 0; i < differenceFromTop; i++) {
     let square = $('#S' + position[0] + (positionNum + i + 1));
-
-    if (square[0].firstChild) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (positionNum + i)][position.charCodeAt(0) - 'a'.charCodeAt(0)] = color === 'w' ? 'R' : 'r'; // the piece actually shouldnt matter, as long as the positions are accurate to see if its a discovered check
+    temp_board[7 - (positionNum - 1)][position.charCodeAt(0) - 'a'.charCodeAt(0)] = '1';
+    if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      break;
+    }
+    else if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
         possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
       }
@@ -297,7 +341,13 @@ function getVerticalMoves(position, color, boardArray) {
   }
   for (let i = 0; i < differenceFromBottom; i++) {
     let square = $('#S' + position[0] + (positionNum - i - 1));
-    if (square[0].firstChild) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (positionNum - i - 2)][position.charCodeAt(0) - 'a'.charCodeAt(0)] = color === 'w' ? 'R' : 'r';
+    temp_board[7 - (positionNum - 1)][position.charCodeAt(0) - 'a'.charCodeAt(0)] = '1';
+    if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      break;
+    }
+    else if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
         possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
       }
@@ -334,8 +384,13 @@ function getRookMoves(position, color, boardArray) {
   }
   for (let i = 0; i < differenceFromRight; i++) {
     let square = $('#S' + String.fromCharCode(positionCharCode + i + 1) + positionNum);
-
-    if (square[0].firstChild) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (positionNum - 1)][positionCharCode + i + 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'R' : 'r';
+    temp_board[7 - (positionNum - 1)][differenceFromLeft - 1] = '1';
+    if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      break;
+    }
+    else if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
         possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
       }
@@ -376,27 +431,35 @@ function getBishopMoves(position, color, boardArray) {
       ]);
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
+      let temp_board = copyArrayofArray(boardArray);
+      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'B' : 'b';
+      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
+      console.log(isCheck(findPositionOf(boardArray, color === 'w' ? 'K' : 'k'), boardArray));
+      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
 
-      if (square[0] !== '1') {
+      if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+        if (square[2] === 'lbDiag') lbDiag = false;
+        else if (square[2] === 'ltDiag') ltDiag = false;
+      }
+      else if (square[0] !== '1') {
         if (color !== getColor(square[0])) {
           possibleMoves.push('C' + square[1]); // 'C' for captureHint
         }
         if (square[2] === 'lbDiag') lbDiag = false;
         else if (square[2] === 'ltDiag') ltDiag = false;
       }
-      else if (square[0] === '1') {
-        possibleMoves.push(square[1]);
-      }
+      else if (square[0] === '1') possibleMoves.push(square[1]);
     }
   }
   for (let i = 0; i < differenceFromRight; i++) {
     let squares = [];
-    if (rbDiag && positionNum - i - 1 > 0)
+    if (rbDiag && positionNum - i - 1 > 0) {
       squares.push([
-        boardArray[7 - (positionNum - i - 2)][differenceFromRight + i],
+        boardArray[7 - (positionNum - i - 2)][differenceFromLeft + i + 1],
         String.fromCharCode(positionCharCode + i + 1) + (positionNum - i - 1),
         'rbDiag'
       ]);
+    }
     if (rtDiag && positionNum + i + 1 <= 8)
       squares.push([
         boardArray[7 - (positionNum + i)][differenceFromRight + i],
@@ -406,19 +469,23 @@ function getBishopMoves(position, color, boardArray) {
 
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
-      if (square[0] !== '1') {
+      let temp_board = copyArrayofArray(boardArray);
+      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'B' : 'b';
+      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
+      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
+
+      if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+        if (square[2] === 'rbDiag') rbDiag = false;
+        else if (square[2] === 'rtDiag') rtDiag = false;
+      }
+      else if (square[0] !== '1') {
         if (color !== getColor(square[0])) {
           possibleMoves.push('C' + square[1]); // 'C' for captureHint
         }
         if (square[2] === 'rbDiag') rbDiag = false;
         else if (square[2] === 'rtDiag') rtDiag = false;
       }
-      else if (square[0] === '1') {
-        let temp_board = copyArrayofArray(boardArray);
-        temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'B' : 'b';
-        temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
-        if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) possibleMoves.push(square[1]);
-      }
+      else if (square[0] === '1') possibleMoves.push(square[1]);
     }
   }
   return possibleMoves;
@@ -460,8 +527,16 @@ function getQueenMoves(position, color, boardArray) {
       ]);
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
-
-      if (square[0] !== '1') {
+      let temp_board = copyArrayofArray(boardArray);
+      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'Q' : 'q';
+      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
+      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
+      if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+        if (square[2] === 'lbDiag') lbDiag = false;
+        else if (square[2] === 'lMid') lMid = false;
+        else if (square[2] === 'ltDiag') ltDiag = false;
+      }
+      else if (square[0] !== '1') {
         if (color !== getColor(square[0])) {
           possibleMoves.push('C' + square[1]); // 'C' for captureHint
         }
@@ -469,13 +544,7 @@ function getQueenMoves(position, color, boardArray) {
         else if (square[2] === 'lMid') lMid = false;
         else if (square[2] === 'ltDiag') ltDiag = false;
       }
-      else if (square[0] === '1') {
-        let temp_board = copyArrayofArray(boardArray);
-        console.log(temp_board, boardArray);
-        temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'Q' : 'q';
-        temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
-        if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) possibleMoves.push(square[1]);
-      }
+      else if (square[0] === '1') possibleMoves.push(square[1]);
     }
   }
   for (let i = 0; i < differenceFromRight; i++) {
@@ -501,8 +570,18 @@ function getQueenMoves(position, color, boardArray) {
 
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
+      let temp_board = copyArrayofArray(boardArray);
+      console.log(temp_board, boardArray);
+      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'Q' : 'q';
+      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
+      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
 
-      if (square[0] !== '1') {
+      if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+        if (square[2] === 'rbDiag') rbDiag = false;
+        else if (square[2] === 'rMid') rMid = false;
+        else if (square[2] === 'rtDiag') rtDiag = false;
+      }
+      else if (square[0] !== '1') {
         if (color !== getColor(square[0])) {
           possibleMoves.push('C' + square[1]); // 'C' for captureHint
         }
@@ -510,9 +589,7 @@ function getQueenMoves(position, color, boardArray) {
         else if (square[2] === 'rMid') rMid = false;
         else if (square[2] === 'rtDiag') rtDiag = false;
       }
-      else if (square[0] === '1') {
-        possibleMoves.push(square[1]);
-      }
+      else if (square[0] === '1') possibleMoves.push(square[1]);
     }
   }
   return possibleMoves;

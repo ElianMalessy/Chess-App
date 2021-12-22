@@ -12,14 +12,17 @@ function Board({ FEN, check }) {
 
   const [board, setBoard] = useState([]);
   const boardFiller = useRef([]);
+  const firstRender = useRef(true);
 
   useEffect(
     () => {
+      console.log(FEN, firstRender.current, playerColor)
+      if (firstRender.current && FEN && playerColor) firstRender.current = false;
+      else if (!firstRender.current && FEN && playerColor) return;
+
       console.log('board-render', FEN);
       const emptyBoard = [];
       boardFiller.current = emptyBoard;
-      setBoard(emptyBoard);
-
       let index = FEN.length;
       while (true) {
         if (FEN[index] === 'w' || FEN[index] === 'b') {
@@ -57,9 +60,10 @@ function Board({ FEN, check }) {
             const key = String.fromCharCode(104 - column) + '' + row;
             const tile_class = (column + row) % 2 === 1 ? 'non-colored-tile' : 'colored-tile';
 
+            let pos = FEN[i] + key;
             boardFiller.current.push(
               <div key={key} className={classes[tile_class]} id={'S' + key}>
-                <PieceMemo color={color} position={FEN[i] + key} />
+                <PieceMemo color={color} position={pos} />
               </div>
             );
           }
@@ -90,9 +94,10 @@ function Board({ FEN, check }) {
             const key = String.fromCharCode(97 + column) + '' + row;
             const tile_class = (column + row) % 2 === 0 ? 'non-colored-tile' : 'colored-tile';
             // use key instead of ID to move around pieces as that is immutable from the client side
+            let pos = FEN[i] + key;
             boardFiller.current.push(
               <div key={key} className={classes[tile_class]} id={'S' + key}>
-                <PieceMemo color={color} position={FEN[i] + key} />
+                <PieceMemo color={color} position={pos} />
               </div>
             );
           }
@@ -115,7 +120,7 @@ function Board({ FEN, check }) {
         else if (turn[0] === 'b') {
           kingPos = findPositionOf(boardArray, 'k');
         }
-        findPossibleMoves(check, kingPos, ...findAllPieces(boardArray, turn[0]));
+        findPossibleMoves(check, kingPos, ...findAllPieces(boardArray, turn[0]), boardArray);
         // only use for determining checkmate and possible moves if there is a check
       }
     },

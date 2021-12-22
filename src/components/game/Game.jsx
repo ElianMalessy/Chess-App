@@ -9,7 +9,8 @@ import { database } from '../../firebase';
 import { ref, update, set, get, onValue, off } from '@firebase/database';
 import { useAuth } from '../../contexts/AuthContext';
 import { Container, Row, Col } from 'react-bootstrap';
-import { getColor } from './moveFunctions';
+import { getColor, isCheck } from './moveFunctions';
+import findPositionOf from './findBoardIndex';
 
 export const PlayerContext = createContext();
 export const TurnContext = createContext({ turn: ['white', 'pe2', 'pe4'], setTurn: () => {} });
@@ -136,15 +137,6 @@ export default memo(function Game(props) {
     [fixBoardArray, getFEN, fixTurnFromFEN]
   );
 
-  const foundColor = useRef(false);
-  useEffect(() => {
-    let col = localStorage.getItem(currentUserID.current);
-    if (col) {
-      foundColor.current = true;
-      setplayerColor(col);
-    }
-  }, []);
-
   // userHandler gets triggered on every load of the page
   useEffect(
     () => {
@@ -160,7 +152,6 @@ export default memo(function Game(props) {
               if (p2 === undefined && playerID !== p1) {
                 // new user, color = black
                 setplayerColor('black');
-                if (foundColor.current === false) localStorage.setItem(currentUserID.current, 'black');
 
                 update(dbRef, {
                   player2: playerID
@@ -170,11 +161,9 @@ export default memo(function Game(props) {
                 // old users
                 if (playerID === p1) {
                   setplayerColor('white');
-                  if (foundColor.current === false) localStorage.setItem(currentUserID.current, 'white');
                 }
                 else if (playerID === p2) {
                   setplayerColor('black');
-                  if (foundColor.current === false) localStorage.setItem(currentUserID.current, 'black');
                 }
                 fixStuffOnLoad(true);
               }
@@ -261,6 +250,9 @@ export default memo(function Game(props) {
         setEnpassentSquare(null);
         temp_FEN += ' -';
       }
+      const whiteKingPos = findPositionOf(tempBoard, 'K');
+      const blackKingPos = findPositionOf(tempBoard, 'k');
+      const check1 = playerColor === 'white' ? isCheck(blackKingPos, tempBoard) : isCheck(whiteKingPos, tempBoard);
 
       setBoardArray(tempBoard);
       setFEN(temp_FEN);
@@ -269,9 +261,9 @@ export default memo(function Game(props) {
         FEN: temp_FEN,
         lastMove: oldToNewLocations
       });
-      if (turn[3] !== undefined) {
+      if (check1) {
         update(ref(database, 'Games/' + gameID.current), {
-          check: turn[3]
+          check: check1
         });
       }
       else {
@@ -328,7 +320,12 @@ export default memo(function Game(props) {
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');
     onValue(dbRef, (snapshot) => {
-      if (!snapshot.exists() || !playerColor || getColor(snapshot.val()[0][0]) === playerColor[0] || FEN === 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -') {
+      if (
+        !snapshot.exists() ||
+        !playerColor ||
+        getColor(snapshot.val()[0][0]) === playerColor[0] ||
+        FEN === 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'
+      ) {
         off(dbRef);
         return;
       }

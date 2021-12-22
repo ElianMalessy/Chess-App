@@ -20,7 +20,6 @@ export default memo(function PieceMemo({ color, position }) {
 
   function drag(mouse) {
     const move = $(mouse.target);
-    console.log(possibleSquares.current, move);
 
     possibleSquares.current = highlightSquares(mouse.target.id, enPassentSquare, boardArray);
     if (!possibleSquares.current) {
@@ -93,7 +92,6 @@ export default memo(function PieceMemo({ color, position }) {
       // weird shit happening with the boardArray having been updated before this block of code is even executed
       const whiteKingPos = findPositionOf(boardArray, 'K');
       const blackKingPos = findPositionOf(boardArray, 'k');
-      console.log(whiteKingPos, blackKingPos, boardArray);
       const check = playerColor === 'white' ? isCheck(whiteKingPos, boardArray) : isCheck(blackKingPos, boardArray);
       if (check) {
         // if the move causes a discovered check to ones own king, then it is not a legal move
@@ -124,11 +122,6 @@ export default memo(function PieceMemo({ color, position }) {
         $('#' + final_id).appendTo('#S' + destinationPosition);
         endLocation.push(original_id, final_id);
 
-        const check1 = playerColor === 'white' ? isCheck(blackKingPos, boardArray) : isCheck(whiteKingPos, boardArray);
-        if (check1) {
-          console.log(check1);
-          endLocation.push(check1);
-        }
       }
     }
 
