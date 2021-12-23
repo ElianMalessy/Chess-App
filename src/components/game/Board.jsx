@@ -120,7 +120,7 @@ function Board({ FEN, check }) {
         else if (turn[0] === 'b') {
           kingPos = findPositionOf(boardArray, 'k');
         }
-        findPossibleMoves(check, kingPos, ...findAllPieces(boardArray, turn[0]), boardArray);
+        findPossibleMoves(check, kingPos, findAllPieces(boardArray, turn[0]), boardArray, turn[0]);
         // only use for determining checkmate and possible moves if there is a check
       }
     },

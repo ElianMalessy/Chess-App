@@ -2,17 +2,20 @@
 import $ from 'jquery';
 import findPositionOf, { findAllPieces, copyArrayofArray } from './findBoardIndex';
 
-export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, boardArray) {
+export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, boardArray, color) {
   // if there are checking pieces, then that means that the move that this player makes has to block those checking pieces
   // use isCheck on all of the possibilities, if its a bishop for example, that means that the move either has to be the king moving out of the way
   // (that can be true for all of them, as long as that next position doesnt return a true in isCheck()), or it can be a piece moving into that diag
   // if there are no possible moves to stop isCheck() as in it always returns true, then it is checkmate and the game ends
-  const possibleMoves = [];
   const tempPossibleSquares = new Set();
 
   checkingPieces.forEach((checkingPiece) => {
-    if ((checkingPiece[0].toLowerCase() === 'q' || checkingPiece[0] === 'b') && checkingPiece[1] !== kingPos[1]) {
-      const squares = movePiecesDiag(checkingPiece, kingPos);
+    if (
+      (checkingPiece[0].toLowerCase() === 'q' || checkingPiece[0].toLowerCase() === 'b') &&
+      checkingPiece[1] !== kingPos[1]
+    ) {
+      const squares = movePiecesDiag(checkingPiece, kingPos, boardArray);
+      console.log(squares);
       if (Array.isArray(squares)) tempPossibleSquares.add(...squares); // needs fix
     }
     if (
@@ -25,7 +28,10 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
     tempPossibleSquares.add(checkingPiece[1] + checkingPiece[2]); // can capture the checking piece to stop the check
     // if the piece is a pawn or a knight, the only way to get unchecked is to move out of the way or to capture them
   });
+
   console.log(tempPossibleSquares);
+  const possibleMoves = [];
+
   piecesArray.forEach((piece) => {
     // if a piece going to this square triggers a discovered check, then dont put this into possible moves
     // since you have the possible squares in which the pieces must go into to protect the king, the next step is to check every piece and see if
@@ -39,6 +45,9 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
     });
   });
   console.log(possibleMoves, 'possibleMoves');
+
+  if (getKingMoves(kingPos, color, boardArray).length === 0 && possibleMoves.length === 0) return 'checkMate';
+  else return true;
 }
 
 export function isCheck(kingPos, boardArray) {
@@ -58,7 +67,7 @@ function movePiecesDiag(destination, origin, board) {
   let origLetter = origin[1].charCodeAt(0);
   const arrayOfAttack = [];
 
-  if (Math.abs(destLetter - origLetter) === 1) return true; // dist = 1
+  if (Math.abs(destLetter - origLetter) === 1) return true; // dist = 1 so no squares in between to seperate
 
   if (destLetter - origLetter > 0) {
     for (let i = 1; i < destLetter - origLetter; i++) {
@@ -136,7 +145,7 @@ function movePiecesVertLat(destination, origin, board) {
 }
 
 export function getColor(pieceType) {
-  if (pieceType.toUpperCase() === pieceType) return 'w';
+  if (pieceType && pieceType.toUpperCase() === pieceType) return 'w';
   else return 'b';
 }
 
@@ -177,118 +186,7 @@ export function highlightSquares(piece, enPassentSquare, boardArray) {
 
 function getKingMoves(position, color, boardArray) {
   const possibleMoves = [];
-
-  return [];
-}
-
-function getWhitePawnMoves(position, color, enPassentSquare, boardArray) {
-  const possibleMoves = [];
-  const positionLetter = position.charCodeAt(0);
-
-  if (!$('#S' + position[0] + (parseInt(position[1]) + 1))[0].firstChild) // DO THE NORMAL PAWN MOVES
-    possibleMoves.push(position[0] + (parseInt(position[1]) + 1));
-  if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) + 2))[0].firstChild)
-    possibleMoves.push(position[0] + (parseInt(position[1]) + 2));
-
-  let upLeft =
-    positionLetter - 1 >= 'a'.charCodeAt(0)
-      ? $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) + 1))
-      : null;
-  let upRight =
-    positionLetter + 1 <= 'h'.charCodeAt(0)
-      ? $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) + 1))
-      : null;
-
-  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color) {
-    let temp_board = copyArrayofArray(boardArray);
-    temp_board[7 - parseInt(position[1])][positionLetter - 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
-    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
-      possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
-    }
-  }
-  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color) {
-    let temp_board = copyArrayofArray(boardArray);
-    temp_board[7 - parseInt(position[1])][positionLetter + 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
-    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
-      possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
-    }
-  }
-  if (
-    enPassentSquare &&
-    position[1] === '5' &&
-    enPassentSquare[1] === '5' &&
-    Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
-  ) {
-    let temp_board = copyArrayofArray(boardArray);
-    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-    temp_board[7 - (parseInt(enPassentSquare[1]) - 1)][enPassentSquare.charCodeAt(0) - 'a'.charCodeAt(0)] =
-      color === 'w' ? 'P' : 'p';
-    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
-      possibleMoves.push('E' + enPassentSquare); // 'E' for enPassent
-    }
-  }
-
-  return possibleMoves;
-}
-
-function getBlackPawnMoves(position, color, enPassentSquare, boardArray) {
-  const possibleMoves = [];
-  const positionLetter = position.charCodeAt(0);
-
-  if (!$('#S' + position[0] + (parseInt(position[1]) - 1))[0].firstChild)
-    possibleMoves.push(position[0] + (parseInt(position[1]) - 1));
-  if (position[1] === '7' && !$('#S' + position[0] + (parseInt(position[1]) - 2))[0].firstChild)
-    possibleMoves.push(position[0] + (parseInt(position[1]) - 2));
-
-  let upLeft =
-    positionLetter + 1 <= 'h'.charCodeAt(0)
-      ? $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) - 1))
-      : null;
-  let upRight =
-    positionLetter - 1 >= 'a'.charCodeAt(0)
-      ? $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) - 1))
-      : null;
-
-  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color) {
-    let temp_board = copyArrayofArray(boardArray);
-    temp_board[7 - (parseInt(position[1]) - 2)][positionLetter + 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
-    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
-      possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
-    }
-  }
-  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color) {
-    let temp_board = copyArrayofArray(boardArray);
-    temp_board[7 - (parseInt(position[1]) - 2)][positionLetter - 1 - 'a'.charCodeAt(0)] = color === 'w' ? 'P' : 'p';
-    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
-      possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
-    }
-  }
-
-  if (
-    enPassentSquare &&
-    position[1] === '4' &&
-    enPassentSquare[1] === '4' &&
-    Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
-  ) {
-    let temp_board = copyArrayofArray(boardArray);
-    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-    temp_board[7 - (parseInt(enPassentSquare[1]) - 1)][enPassentSquare.charCodeAt(0) - 'a'.charCodeAt(0)] =
-      color === 'w' ? 'P' : 'p';
-    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
-      possibleMoves.push('E' + enPassentSquare);
-    }
-  }
-
-  return possibleMoves;
-}
-
-function getKnightMoves(position, color, boardArray) {
-  const possibleMoves = [];
-  const destinations = [[-1, 2], [1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1]]; // all the knight moves
+  const destinations = [[-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0]];
   const positionLetter = position.charCodeAt(0);
   const positionNum = parseInt(position[1]);
 
@@ -311,6 +209,161 @@ function getKnightMoves(position, color, boardArray) {
       }
     }
   }
+  return possibleMoves;
+}
+
+function getKnightMoves(position, color, boardArray) {
+  const possibleMoves = [];
+  const destinations = [[-1, 2], [1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1]]; // all the knight moves
+  const positionLetter = position.charCodeAt(0);
+  const positionNum = parseInt(position[1]);
+
+  for (let i = 0; i < 8; i++) {
+    const newLetter = positionLetter + destinations[i][0];
+    const newNumber = positionNum + destinations[i][1];
+    if (newNumber <= 8 && newNumber > 0 && newLetter >= 'a'.charCodeAt(0) && newLetter <= 'h'.charCodeAt(0)) {
+      let square = $('#S' + String.fromCharCode(newLetter) + newNumber);
+      let temp_board = copyArrayofArray(boardArray);
+      temp_board[7 - (newNumber - 1)][newLetter - 'a'.charCodeAt(0)] = color === 'w' ? 'N' : 'n';
+      temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+      if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) continue;
+      else if (square[0].firstChild) {
+        if (color !== getColor(square[0].firstChild.id[0])) {
+          possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
+        }
+      }
+      else if (!square[0].firstChild) {
+        possibleMoves.push(square[0].id[1] + square[0].id[2]);
+      }
+    }
+  }
+  return possibleMoves;
+}
+
+function getWhitePawnMoves(position, color, enPassentSquare, boardArray) {
+  const possibleMoves = [];
+  const positionLetter = position.charCodeAt(0);
+
+  if (!$('#S' + position[0] + (parseInt(position[1]) + 1))[0].firstChild) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - parseInt(position[1])][positionLetter - 'a'.charCodeAt(0)] = 'P';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push(position[0] + (parseInt(position[1]) + 1));
+    }
+  }
+  if (position[1] === '2' && !$('#S' + position[0] + (parseInt(position[1]) + 2))[0].firstChild) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) + 1)][positionLetter - 'a'.charCodeAt(0)] = 'P';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push(position[0] + (parseInt(position[1]) + 2));
+    }
+  }
+
+  let upLeft =
+    positionLetter - 1 >= 'a'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) + 1))
+      : null;
+  let upRight =
+    positionLetter + 1 <= 'h'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) + 1))
+      : null;
+
+  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - parseInt(position[1])][positionLetter - 1 - 'a'.charCodeAt(0)] = 'P';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
+    }
+  }
+  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - parseInt(position[1])][positionLetter + 1 - 'a'.charCodeAt(0)] = 'P';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
+    }
+  }
+  if (
+    enPassentSquare &&
+    position[1] === '5' &&
+    enPassentSquare[1] === '5' &&
+    Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
+  ) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    temp_board[7 - (parseInt(enPassentSquare[1]) - 1)][enPassentSquare.charCodeAt(0) - 'a'.charCodeAt(0)] = 'P';
+    if (!isCheck(findPositionOf(temp_board, 'K'), temp_board)) {
+      possibleMoves.push('E' + enPassentSquare);
+    }
+  }
+
+  return possibleMoves;
+}
+
+function getBlackPawnMoves(position, color, enPassentSquare, boardArray) {
+  const possibleMoves = [];
+  const positionLetter = position.charCodeAt(0);
+
+  if (!$('#S' + position[0] + (parseInt(position[1]) - 1))[0].firstChild) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 2)][positionLetter - 'a'.charCodeAt(0)] = 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, 'k'), temp_board)) {
+      possibleMoves.push(position[0] + (parseInt(position[1]) - 1));
+    }
+  }
+  if (position[1] === '7' && !$('#S' + position[0] + (parseInt(position[1]) - 2))[0].firstChild) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 3)][positionLetter - 'a'.charCodeAt(0)] = 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, 'k'), temp_board)) {
+      possibleMoves.push(position[0] + (parseInt(position[1]) - 2));
+    }
+  }
+
+  let upLeft =
+    positionLetter + 1 <= 'h'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter + 1) + (parseInt(position[1]) - 1))
+      : null;
+  let upRight =
+    positionLetter - 1 >= 'a'.charCodeAt(0)
+      ? $('#S' + String.fromCharCode(positionLetter - 1) + (parseInt(position[1]) - 1))
+      : null;
+
+  if (upLeft && upLeft[0].firstChild !== null && getColor(upLeft[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 2)][positionLetter + 1 - 'a'.charCodeAt(0)] = 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upLeft[0].id[1] + upLeft[0].id[2]);
+    }
+  }
+  if (upRight && upRight[0].firstChild !== null && getColor(upRight[0].firstChild.id[0]) !== color) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(position[1]) - 2)][positionLetter - 1 - 'a'.charCodeAt(0)] = 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
+      possibleMoves.push('C' + upRight[0].id[1] + upRight[0].id[2]);
+    }
+  }
+
+  if (
+    enPassentSquare &&
+    position[1] === '4' &&
+    enPassentSquare[1] === '4' &&
+    Math.abs(enPassentSquare.charCodeAt(0) - positionLetter) === 1
+  ) {
+    let temp_board = copyArrayofArray(boardArray);
+    temp_board[7 - (parseInt(enPassentSquare[1]) - 1)][enPassentSquare.charCodeAt(0) - 'a'.charCodeAt(0)] = 'p';
+    temp_board[7 - (parseInt(position[1]) - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+    if (!isCheck(findPositionOf(temp_board, 'k'), temp_board)) {
+      possibleMoves.push('E' + enPassentSquare);
+    }
+  }
+
   return possibleMoves;
 }
 
@@ -362,7 +415,7 @@ function getVerticalMoves(position, color, boardArray) {
 
 function getRookMoves(position, color, boardArray) {
   const possibleMoves = [];
-  possibleMoves.push(...getVerticalMoves(position, color));
+  possibleMoves.push(...getVerticalMoves(position, color, boardArray));
 
   const positionCharCode = position.charCodeAt(0);
   const positionNum = parseInt(position[1]);
@@ -460,12 +513,19 @@ function getBishopMoves(position, color, boardArray) {
         'rbDiag'
       ]);
     }
-    if (rtDiag && positionNum + i + 1 <= 8)
+    if (rtDiag && positionNum + i + 1 <= 8) {
+      console.log(
+        boardArray,
+        7 - (positionNum + i),
+        differenceFromRight + i + 1,
+        String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1)
+      );
       squares.push([
-        boardArray[7 - (positionNum + i)][differenceFromRight + i],
-        String.fromCharCode(positionCharCode + i + 1) + (positionNum + i),
+        boardArray[7 - (positionNum + i)][differenceFromLeft + i + 1],
+        String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1),
         'rtDiag'
       ]);
+    }
 
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
@@ -493,7 +553,7 @@ function getBishopMoves(position, color, boardArray) {
 
 function getQueenMoves(position, color, boardArray) {
   const possibleMoves = [];
-  possibleMoves.push(...getVerticalMoves(position, color));
+  possibleMoves.push(...getVerticalMoves(position, color, boardArray));
 
   const positionCharCode = position.charCodeAt(0);
   const positionNum = parseInt(position[1]);
