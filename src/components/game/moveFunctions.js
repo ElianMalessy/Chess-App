@@ -2,7 +2,7 @@
 import $ from 'jquery';
 import findPositionOf, { findAllPieces, copyArrayofArray } from './findBoardIndex';
 
-export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, boardArray, color) {
+export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, boardArray, color, enPassentSquare) {
   // if there are checking pieces, then that means that the move that this player makes has to block those checking pieces
   // use isCheck on all of the possibilities, if its a bishop for example, that means that the move either has to be the king moving out of the way
   // (that can be true for all of them, as long as that next position doesnt return a true in isCheck()), or it can be a piece moving into that diag
@@ -15,15 +15,14 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
       checkingPiece[1] !== kingPos[1]
     ) {
       const squares = movePiecesDiag(checkingPiece, kingPos, boardArray);
-      console.log(squares);
-      if (Array.isArray(squares)) tempPossibleSquares.add(...squares); // needs fix
+      if (Array.isArray(squares)) squares.forEach((square) => tempPossibleSquares.add(square));
     }
     if (
       (checkingPiece[0].toLowerCase() === 'r' || checkingPiece[0].toLowerCase() === 'q') &&
       (checkingPiece[1] === kingPos[1] || checkingPiece[2] === kingPos[2])
     ) {
       const squares = movePiecesVertLat(checkingPiece, kingPos, boardArray);
-      if (Array.isArray(squares)) tempPossibleSquares.add(...squares);
+      if (Array.isArray(squares)) squares.forEach((square) => tempPossibleSquares.add(square));
     }
     tempPossibleSquares.add(checkingPiece[1] + checkingPiece[2]); // can capture the checking piece to stop the check
     // if the piece is a pawn or a knight, the only way to get unchecked is to move out of the way or to capture them
@@ -38,7 +37,7 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
     // they can move to protect the king, (not including the king)
     console.log(piece);
     tempPossibleSquares.forEach((square) => {
-      if (moveFunctions[piece[0]](square, piece[1] + piece[2])) {
+      if (moveFunctions[piece[0].toLowerCase()]('S' + square, piece, boardArray, enPassentSquare)) {
         possibleMoves.push([piece, square]);
         console.log(piece, square);
       }
@@ -46,12 +45,16 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
   });
   console.log(possibleMoves, 'possibleMoves');
 
-  if (getKingMoves(kingPos, color, boardArray).length === 0 && possibleMoves.length === 0) return 'checkMate';
+  if (getKingMoves(kingPos, color, boardArray).length === 0 && possibleMoves.length === 0) {
+    console.log('CHECKMATE'); // IT WORKS!!!
+    return false;
+  }
   else return true;
 }
 
 export function isCheck(kingPos, boardArray) {
-  const pieces = findAllPieces(boardArray, kingPos[0].toLowerCase() === kingPos[0] ? 'b' : 'w'); //select all of the pieces except for the kings as they cant check each other
+  if (!kingPos) return false;
+  const pieces = findAllPieces(boardArray, getColor(kingPos[0])); //select all of the pieces except for the kings as they cant check each other
   // checks if the move is legal by putting in the destination and looking for checks before actually appending to new square
   const potentialCheckingPieces = [...pieces];
   const checkingPieces = [];
@@ -63,8 +66,12 @@ export function isCheck(kingPos, boardArray) {
 }
 
 function movePiecesDiag(destination, origin, board) {
-  let destLetter = destination[1].charCodeAt(0);
-  let origLetter = origin[1].charCodeAt(0);
+  const destLetter = destination.charCodeAt(1);
+  const origLetter = origin.charCodeAt(1);
+  const destNumber = parseInt(destination[2]);
+  const origNumber = parseInt(origin[2]);
+  console.log(destination, origin, board);
+
   const arrayOfAttack = [];
 
   if (Math.abs(destLetter - origLetter) === 1) return true; // dist = 1 so no squares in between to seperate
@@ -72,34 +79,38 @@ function movePiecesDiag(destination, origin, board) {
   if (destLetter - origLetter > 0) {
     for (let i = 1; i < destLetter - origLetter; i++) {
       let num;
-      destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) + i) : (num = parseInt(origin[2]) - i);
+      destNumber - origNumber > 0 ? (num = origNumber + i) : (num = origNumber - i);
       let str = String.fromCharCode(origLetter + i) + num;
       arrayOfAttack.push(str);
-      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
+      console.log(origLetter + i - 'a'.charCodeAt(0), num, board[origLetter + i - 'a'.charCodeAt(0)][8 - num]);
+      if (board[8 - num][origLetter + i - 'a'.charCodeAt(0)] !== '1') return false;
     }
   }
   else {
     for (let i = -1; i > destLetter - origLetter; i--) {
       let num;
-      destination[2] - origin[2] > 0 ? (num = parseInt(origin[2]) - i) : (num = parseInt(origin[2]) + i);
+      destNumber - origNumber > 0 ? (num = origNumber - i) : (num = origNumber + i);
       let str = String.fromCharCode(origLetter + i) + num;
       arrayOfAttack.push(str);
-      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
+      if (board[8 - num][origLetter + i - 'a'.charCodeAt(0)] !== '1') return false;
     }
   }
+  console.log(arrayOfAttack);
   return arrayOfAttack;
 }
 
 function movePiecesVertLat(destination, origin, board) {
-  let destLetter = destination[1].charCodeAt(0);
-  let origLetter = origin[1].charCodeAt(0);
-  console.log(destination, origin);
+  const destLetter = destination.charCodeAt(1);
+  const origLetter = origin.charCodeAt(1);
+  const destNumber = parseInt(destination[2]);
+  const origNumber = parseInt(origin[2]);
+  if (origin.length < 3) console.log(destination, origin, board);
   const arrayOfAttack = [];
 
   // distance = 1 means nothing can be in the way of the move except the destination itself
   if (
     (Math.abs(destLetter - origLetter) === 1 && destination[2] === origin[2]) ||
-    (Math.abs(destination[2] - origin[2]) === 1 && destLetter === origLetter)
+    (Math.abs(destNumber - origNumber) === 1 && destLetter === origLetter)
   )
     return true;
   else if (destLetter > origLetter) {
@@ -107,7 +118,7 @@ function movePiecesVertLat(destination, origin, board) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
       arrayOfAttack.push(str);
 
-      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - parseInt(origin[2])] !== '1') return false;
+      if (board[8 - origNumber][origLetter + i - 'a'.charCodeAt(0)] !== '1') return false;
     }
   }
   else if (destLetter < origLetter) {
@@ -115,28 +126,28 @@ function movePiecesVertLat(destination, origin, board) {
       let str = String.fromCharCode(origLetter + i) + origin[2];
       arrayOfAttack.push(str);
 
-      if (board[origLetter + i - 'a'.charCodeAt(0)][8 - parseInt(origin[2])] !== '1') return false;
+      if (board[8 - origNumber][origLetter + i - 'a'.charCodeAt(0)] !== '1') return false;
     }
     return arrayOfAttack;
   }
   else {
     // vertical movement
-    if (destination[2] > origin[2]) {
-      for (let i = 1; i < destination[2] - origin[2]; i++) {
-        let num = parseInt(origin[2]) + i;
+    if (destNumber > origNumber) {
+      for (let i = 1; i < destNumber - origNumber; i++) {
+        let num = origNumber + i;
         let str = origin[1] + num;
 
         arrayOfAttack.push(str);
-        if (board[origLetter - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
+        if (board[8 - num][origLetter - 'a'.charCodeAt(0)] !== '1') return false;
       }
     }
-    else if (destination[2] < origin[2]) {
-      for (let i = -1; i > destination[2] - origin[2]; i--) {
-        let num = parseInt(origin[2]) + i;
+    else if (destNumber < origNumber) {
+      for (let i = -1; i > destNumber - origNumber; i--) {
+        let num = origNumber + i;
         let str = origin[1] + num;
 
         arrayOfAttack.push(str);
-        if (board[origLetter - 'a'.charCodeAt(0)][8 - num] !== '1') return false;
+        if (board[8 - num][origLetter - 'a'.charCodeAt(0)] !== '1') return false;
       }
     }
     console.log(arrayOfAttack);
@@ -485,9 +496,8 @@ function getBishopMoves(position, color, boardArray) {
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
       let temp_board = copyArrayofArray(boardArray);
-      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'B' : 'b';
-      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
-      console.log(isCheck(findPositionOf(boardArray, color === 'w' ? 'K' : 'k'), boardArray));
+      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft - i - 1] = color === 'w' ? 'B' : 'b';
+      temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
       console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
 
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
@@ -513,25 +523,18 @@ function getBishopMoves(position, color, boardArray) {
         'rbDiag'
       ]);
     }
-    if (rtDiag && positionNum + i + 1 <= 8) {
-      console.log(
-        boardArray,
-        7 - (positionNum + i),
-        differenceFromRight + i + 1,
-        String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1)
-      );
+    if (rtDiag && positionNum + i + 1 <= 8)
       squares.push([
         boardArray[7 - (positionNum + i)][differenceFromLeft + i + 1],
         String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1),
         'rtDiag'
       ]);
-    }
 
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
       let temp_board = copyArrayofArray(boardArray);
-      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'B' : 'b';
-      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
+      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft + i + 1] = color === 'w' ? 'B' : 'b';
+      temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
       console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
 
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
@@ -588,9 +591,9 @@ function getQueenMoves(position, color, boardArray) {
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
       let temp_board = copyArrayofArray(boardArray);
-      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'Q' : 'q';
-      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
-      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
+      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft - i - 1] = color === 'w' ? 'Q' : 'q';
+      temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
+      console.log(square, temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
         if (square[2] === 'lbDiag') lbDiag = false;
         else if (square[2] === 'lMid') lMid = false;
@@ -609,32 +612,39 @@ function getQueenMoves(position, color, boardArray) {
   }
   for (let i = 0; i < differenceFromRight; i++) {
     let squares = [];
-    if (rbDiag && positionNum - i - 1 > 0)
+    if (rbDiag && positionNum - i - 1 > 0) {
       squares.push([
         boardArray[7 - (positionNum - i - 2)][differenceFromRight + i],
         String.fromCharCode(positionCharCode + i + 1) + (positionNum - i - 1),
         'rbDiag'
       ]);
+    }
     if (rMid)
       squares.push([
         boardArray[7 - (positionNum - 1)][differenceFromRight + i],
         String.fromCharCode(positionCharCode + i + 1) + positionNum,
         'rMid'
       ]);
-    if (rtDiag && positionNum + i + 1 <= 8)
+    if (rtDiag && positionNum + i + 1 <= 8) {
+      console.log(7 - (positionNum + i), differenceFromRight + i);
       squares.push([
         boardArray[7 - (positionNum + i)][differenceFromRight + i],
         String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1),
         'rtDiag'
       ]);
+    }
 
     for (let j = 0; j < squares.length; j++) {
       let square = squares[j];
       let temp_board = copyArrayofArray(boardArray);
-      console.log(temp_board, boardArray);
-      temp_board[parseInt(square[1][1]) - 1][differenceFromLeft + i] = color === 'w' ? 'Q' : 'q';
-      temp_board[positionNum - 1][differenceFromLeft - 1] = '1';
-      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
+      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromRight + i] = color === 'w' ? 'Q' : 'q';
+      temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
+      console.log(
+        square,
+        temp_board,
+        findPositionOf(temp_board, color === 'w' ? 'K' : 'k'),
+        isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)
+      );
 
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
         if (square[2] === 'rbDiag') rbDiag = false;
@@ -682,7 +692,7 @@ export const moveFunctions = {
   q: function Queen(destination, origin, board) {
     let destLetter = destination[1].charCodeAt(0);
     let origLetter = origin[1].charCodeAt(0);
-    if (movePiecesVertLat(destination, origin, board)) {
+    if ((destLetter === origLetter || destination[2] === origin[2]) && movePiecesVertLat(destination, origin, board)) {
       return true;
     }
     else if (
@@ -700,40 +710,37 @@ export const moveFunctions = {
     )
       return true;
   },
-  p: function Pawn(destination, origin, board) {
-    let destLetter = destination[1].charCodeAt(0);
-    let origLetter = origin[1].charCodeAt(0);
-    let pawn = $('#' + origin);
-    let pawnColor = pawn.attr('color');
-
-    if (Math.abs(destLetter - origLetter) === 1) {
-      //let enPassent_sqaure;
-      //FEN[1] === '-' ? (enPassent_sqaure = null) : (enPassent_sqaure = FEN);
-      let attemptedEnPassent_sqaure;
-      if ($('#' + destination)[0].firstChild !== null && Math.abs(destination[2] - origin[2]) === 1) {
+  p: function Pawn(destination, origin, board, enPassentSquare) {
+    let destLetter = destination.charCodeAt(1);
+    let origLetter = origin.charCodeAt(1);
+    const destNumber = parseInt(destination[2]);
+    const origNumber = parseInt(origin[2]);
+    if (enPassentSquare && destination === enPassentSquare) {
+      if (
+        getColor(origin[0]) === 'w' &&
+        origin[2] === '5' &&
+        enPassentSquare[1] === '5' &&
+        Math.abs(origLetter - enPassentSquare.charCodeAt(0)) === 1
+      )
         return true;
-      }
-      else if (pawnColor === 'white') {
-        attemptedEnPassent_sqaure = $('#S' + destination[1] + (parseInt(destination[2]) - 1));
-        //console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
-      }
-      else if (pawnColor === 'black') {
-        attemptedEnPassent_sqaure = $('#S' + destination[1] + (parseInt(destination[2]) + 1));
-        //console.log(enPassent_sqaure, attemptedEnPassent_sqaure);
-      }
-      if (attemptedEnPassent_sqaure) {
-        //console.log(attemptedEnPassent_sqaure.children());
-      }
+      else if (
+        getColor(origin[0]) === 'b' &&
+        origin[2] === '4' &&
+        enPassentSquare[1] === '4' &&
+        Math.abs(origLetter - enPassentSquare.charCodeAt(0)) === 1
+      )
+        return true;
+      // no other way to reach en passent square than en passent for a pawn
     }
-    else if (destLetter - origLetter === 0 && pawnColor === 'white') {
-      if (destination[2] - origin[2] === 2 || destination[2] - origin[2] === 1) {
-        return 'p';
-      }
+    else if (Math.abs(destLetter - origLetter) === 1 && board[destLetter - 'a'.charCodeAt(0)][8 - destNumber] !== '1') {
+      return true;
     }
-    else if (destLetter - origLetter === 0 && pawnColor === 'black') {
-      if (destination[2] - origin[2] === -2 || destination[2] - origin[2] === -1) {
-        return 'p';
-      }
+    else if (destLetter === origLetter && board[destLetter - 'a'.charCodeAt(0)][8 - destNumber] === '1') {
+      if (getColor(origin[0]) === 'w' && origin[2] === '2' && destination[2] === '4') return true;
+      else if (getColor(origin[0]) === 'b' && origin[2] === '7' && destination[2] === '5') return true;
+      else if (getColor(origin[0]) === 'w' && destNumber - origNumber === 1) return true;
+      else if (getColor(origin[0]) === 'b' && destNumber - origNumber === -1) return true;
     }
+    return false;
   }
 };

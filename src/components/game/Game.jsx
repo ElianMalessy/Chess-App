@@ -253,7 +253,6 @@ export default memo(function Game(props) {
       const whiteKingPos = findPositionOf(tempBoard, 'K');
       const blackKingPos = findPositionOf(tempBoard, 'k');
       const check1 = playerColor === 'white' ? isCheck(blackKingPos, tempBoard) : isCheck(whiteKingPos, tempBoard);
-
       setBoardArray(tempBoard);
       setFEN(temp_FEN);
       localStorage.setItem('FEN', temp_FEN);
@@ -262,6 +261,8 @@ export default memo(function Game(props) {
         lastMove: oldToNewLocations
       });
       if (check1) {
+        console.log(check1, playerColor, tempBoard);
+
         update(ref(database, 'Games/' + gameID.current), {
           check: check1
         });
