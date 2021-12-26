@@ -10,12 +10,14 @@ import { ref, update, set, get, onValue, off } from '@firebase/database';
 import { useAuth } from '../../contexts/AuthContext';
 import { Container, Row, Col } from 'react-bootstrap';
 import { getColor, isCheck } from './moveFunctions';
-import findPositionOf from './findBoardIndex';
+import findPositionOf, { updateCastling } from './utilityFunctions';
 
 export const PlayerContext = createContext();
-export const TurnContext = createContext({ turn: ['white', 'pe2', 'pe4'], setTurn: () => {} });
+export const TurnContext = createContext();
 export const BoardContext = createContext();
 export const EnPassentContext = createContext();
+export const CheckmateContext = createContext();
+export const CastlingContext = createContext();
 
 export default memo(function Game(props) {
   // default FEN notation: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
@@ -30,6 +32,7 @@ export default memo(function Game(props) {
     });
   });
 
+  const [checkmate, setCheckmate] = useState(false);
   const [boardArray, setBoardArray] = useState([
     ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
     ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'], // black
@@ -188,6 +191,7 @@ export default memo(function Game(props) {
     [fixStuffOnLoad]
   );
 
+  const [castling, setCastling] = useState('KQkq'); // 'K' is white kingside castling 'q' is black queenside castling
   const [enPassentSquare, setEnpassentSquare] = useState(null);
   const setLastMoveFromOtherUser = useRef(true);
   const setFENFromOtherUser = useRef(true);
@@ -196,19 +200,23 @@ export default memo(function Game(props) {
       // if turn is 'white' or 'black' then this is the wrong user/socket as it has no newLocation
       if (turn.length === 5) return;
 
-      let oldToNewLocations = [turn[1], turn[2]];
+      const oldToNewLocations = [turn[1], turn[2]];
       setLastMoveFromOtherUser.current = false;
       setFENFromOtherUser.current = false;
 
-      let column = oldToNewLocations[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
-      let row = parseInt(oldToNewLocations[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
+      const column = oldToNewLocations[0].charCodeAt(1) - 97; // gets e from pe2 and converts that to 4th column (3 in array)
+      const row = parseInt(oldToNewLocations[0][2]) - 1; // gets 2 from pe2 and converts that to the 2nd column (1 in array)
 
-      let piece = boardArray[7 - row][column];
+      const piece = boardArray[7 - row][column];
       const tempBoard = boardArray;
       tempBoard[7 - row][column] = '1'; // prev square is now empty
-      let newColumn = oldToNewLocations[1].charCodeAt(1) - 97;
-      let newRow = parseInt(oldToNewLocations[1][2]) - 1;
+      const newColumn = oldToNewLocations[1].charCodeAt(1) - 97;
+      const newRow = parseInt(oldToNewLocations[1][2]) - 1;
       tempBoard[7 - newRow][newColumn] = piece;
+
+      if (turn[3]) {
+        tempBoard[7 - (parseInt(turn[3][1]) - 1)][turn[3].charCodeAt(0) - 'a'.charCodeAt(0)] = '1';
+      }
 
       // counts pieces from left to right, counting up 1's inbetween pieces to get new FEN
       let temp_FEN = '';
@@ -232,22 +240,49 @@ export default memo(function Game(props) {
       }
 
       temp_FEN += ' ' + turn[0][0];
-      if (true) temp_FEN += ' KQkq'; // for castling ***NEEDS FIX***
+      if (castling !== '') {
+        let temp_castling = castling;
+        switch (turn[1]) {
+          case 'Ke1':
+            temp_castling = updateCastling(castling, 'KQ');
+            break;
+          case 'ke8':
+            temp_castling = updateCastling(castling, 'kq');
+            break;
+          case 'Ra1':
+            temp_castling = updateCastling(castling, 'Q');
+            break;
+          case 'Rh1':
+            temp_castling = updateCastling(castling, 'k');
+            break;
+          case 'ra8':
+            temp_castling = updateCastling(castling, 'q');
+            break;
+          case 'rh8':
+            temp_castling = updateCastling(castling, 'k');
+            break;
+
+          default:
+            break;
+        }
+        console.log(temp_castling);
+        temp_FEN += ' ' + temp_castling;
+        setCastling(temp_castling);
+      }
+
       if (
         piece[0].toLowerCase() === 'p' &&
         Math.abs(parseInt(oldToNewLocations[0][2]) - parseInt(oldToNewLocations[1][2])) === 2
       ) {
         // pe2 to pe4 gets an enPassentSquare of e3
-        let enPassentSquare = oldToNewLocations[0][1];
+        let temp_enPassentSquare = oldToNewLocations[0][1];
         turn[0] === 'black'
-          ? (enPassentSquare += parseInt(oldToNewLocations[0][2]) + 1)
-          : (enPassentSquare += parseInt(oldToNewLocations[1][2]) + 1);
+          ? (temp_enPassentSquare += parseInt(oldToNewLocations[0][2]) + 1)
+          : (temp_enPassentSquare += parseInt(oldToNewLocations[1][2]) + 1);
 
-        setEnpassentSquare(enPassentSquare);
-        temp_FEN += ' ' + enPassentSquare;
+        temp_FEN += ' ' + temp_enPassentSquare;
       }
       else {
-        setEnpassentSquare(null);
         temp_FEN += ' -';
       }
       const whiteKingPos = findPositionOf(tempBoard, 'K');
@@ -258,7 +293,7 @@ export default memo(function Game(props) {
       localStorage.setItem('FEN', temp_FEN);
       update(ref(database, 'Games/' + gameID.current), {
         FEN: temp_FEN,
-        lastMove: oldToNewLocations
+        lastMove: turn[3] ? ['E' + oldToNewLocations[0], oldToNewLocations[1]] : oldToNewLocations
       });
       if (check1) {
         console.log(check1, playerColor, tempBoard);
@@ -288,9 +323,13 @@ export default memo(function Game(props) {
       // if snapshot.val() === FEN that means that the user who updated the FEN in the first place is running this
       if (snapshot.exists() && setFENFromOtherUser.current === true && snapshot.val() !== FEN) {
         const temp_FEN = snapshot.val();
+        console.log(temp_FEN);
         fixBoardArray(temp_FEN);
-        localStorage.setItem('FEN', temp_FEN);
         setFEN(temp_FEN);
+        if (temp_FEN[temp_FEN.length - 1] !== '-') {
+          setEnpassentSquare(temp_FEN[temp_FEN.length - 2] + temp_FEN[temp_FEN.length - 1]);
+        }
+        else setEnpassentSquare(null);
         off(dbRef);
       }
       else if (snapshot.exists() && setFENFromOtherUser.current === false) {
@@ -305,7 +344,6 @@ export default memo(function Game(props) {
     const dbRef = ref(database, 'Games/' + gameID.current + '/check');
     onValue(dbRef, (snapshot) => {
       if (!snapshot.exists()) return;
-      console.log(JSON.stringify(snapshot.val()), JSON.stringify(check));
       let checkingPiece = snapshot.val()[0][0];
       if (
         ((checkingPiece === checkingPiece.toLowerCase() && playerColor === 'white') ||
@@ -324,7 +362,7 @@ export default memo(function Game(props) {
       if (
         !snapshot.exists() ||
         !playerColor ||
-        getColor(snapshot.val()[0][0]) === playerColor[0] ||
+        getColor(snapshot.val()[1][0]) === playerColor[0] ||
         FEN === 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'
       ) {
         off(dbRef);
@@ -334,7 +372,13 @@ export default memo(function Game(props) {
         setLastMoveFromOtherUser.current = true;
       }
       else {
-        const oldToNewLocation = snapshot.val();
+        let oldToNewLocation = snapshot.val();
+        if (oldToNewLocation[0][0] === 'E') {
+          const captureSquare = oldToNewLocation[1][1] + oldToNewLocation[0][3];
+          const capturedPiece = $('#S' + captureSquare)[0].firstChild;
+          if (capturedPiece) $('#' + capturedPiece.id).remove();
+          oldToNewLocation[0] = oldToNewLocation[0][1] + oldToNewLocation[0][2] + oldToNewLocation[0][3]
+        }
         const oldLocation = $('#' + oldToNewLocation[0]);
         if (oldLocation.length === 0) {
           off(dbRef);
@@ -347,6 +391,7 @@ export default memo(function Game(props) {
         oldLocation.appendTo($('#S' + oldToNewLocation[1][1] + oldToNewLocation[1][2]));
         oldLocation.attr('id', oldToNewLocation[1]);
 
+      
         playerColor === 'white' ? setTurn('white') : setTurn('black');
       }
       off(dbRef);
@@ -364,23 +409,27 @@ export default memo(function Game(props) {
     <div className={classes['mainPage']} id='page'>
       <Container>
         <Row>
-          <PlayerContext.Provider value={playerColor}>
-            <Col>
-              <Chat gameID={gameID.current} />
-            </Col>
+          <CheckmateContext.Provider value={{ checkmate, setCheckmate }}>
+            <PlayerContext.Provider value={playerColor}>
+              <Col>
+                <Chat gameID={gameID.current} />
+              </Col>
 
-            <Col>
-              <CapturedPanel>
-                <BoardContext.Provider value={boardArray}>
-                  <TurnContext.Provider value={turnValue}>
-                    <EnPassentContext.Provider value={enPassentSquare}>
-                      <BoardMemo FEN={FEN} check={check} />
-                    </EnPassentContext.Provider>
-                  </TurnContext.Provider>
-                </BoardContext.Provider>
-              </CapturedPanel>
-            </Col>
-          </PlayerContext.Provider>
+              <Col>
+                <CapturedPanel>
+                  <BoardContext.Provider value={boardArray}>
+                    <TurnContext.Provider value={turnValue}>
+                      <EnPassentContext.Provider value={enPassentSquare}>
+                        <CastlingContext.Provider value={castling}>
+                          <BoardMemo FEN={FEN} check={check} />
+                        </CastlingContext.Provider>
+                      </EnPassentContext.Provider>
+                    </TurnContext.Provider>
+                  </BoardContext.Provider>
+                </CapturedPanel>
+              </Col>
+            </PlayerContext.Provider>
+          </CheckmateContext.Provider>
 
           <Col>
             <RightPanel turn={turn} FEN={FEN} />

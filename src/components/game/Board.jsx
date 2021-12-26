@@ -1,15 +1,16 @@
 import { useContext, useEffect, useState, useRef, memo } from 'react';
 import classes from './Board.module.css';
 import PieceMemo from './Piece';
-import { PlayerContext, TurnContext, BoardContext, EnPassentContext } from './Game';
+import { PlayerContext, TurnContext, BoardContext, EnPassentContext, CheckmateContext } from './Game';
 import findPossibleMoves from './moveFunctions';
-import findPositionOf, { findAllPieces } from './findBoardIndex';
+import findPositionOf, { findAllPieces } from './utilityFunctions';
 
 function Board({ FEN, check }) {
   const boardArray = useContext(BoardContext);
   const playerColor = useContext(PlayerContext);
   const { turn } = useContext(TurnContext);
   const enPassentSquare = useContext(EnPassentContext);
+  const { checkmate, setCheckmate } = useContext(CheckmateContext);
 
   const [board, setBoard] = useState([]);
   const boardFiller = useRef([]);
@@ -110,7 +111,7 @@ function Board({ FEN, check }) {
 
   useEffect(
     () => {
-      if (check) {
+      if (check && !checkmate) {
         console.log(check);
         let kingPos;
 
@@ -120,8 +121,11 @@ function Board({ FEN, check }) {
         else if (turn[0] === 'b') {
           kingPos = findPositionOf(boardArray, 'K');
         }
-        findPossibleMoves(check, kingPos, findAllPieces(boardArray, turn[0]), boardArray, turn[0], enPassentSquare);
-        // only use for determining checkmate and possible moves if there is a check
+        if (
+          !findPossibleMoves(check, kingPos, findAllPieces(boardArray, turn[0]), boardArray, turn[0], enPassentSquare)
+        ) {
+          setCheckmate((turn[0] === 'w' ? 'white' : 'black') + ' has won');
+        }
       }
     },
     //eslint-disable-next-line

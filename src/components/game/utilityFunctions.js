@@ -44,3 +44,20 @@ export function copyArrayofArray(arrayofArray) {
   }
   return newArray;
 }
+
+export function updateCastling(castling, removals) {
+  let newCastling = '';
+  console.log(castling, removals);
+  if (removals.length === 2) {
+    for (let i = 0; i < castling.length; i++) {
+      if (castling[i] !== removals[0] && castling[i] !== removals[1]) newCastling += castling[i];
+    }
+  }
+  else {
+    for (let i = 0; i < castling.length; i++) {
+      if (castling[i] !== removals) newCastling += castling[i];
+    }
+  }
+  console.log(newCastling);
+  return newCastling;
+}

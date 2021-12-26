@@ -1,19 +1,19 @@
 import { useContext, memo, useRef } from 'react';
 import classes from './Board.module.css';
 import classNames from 'classnames';
-import { TurnContext, PlayerContext, EnPassentContext, BoardContext } from './Game';
+import { TurnContext, PlayerContext, EnPassentContext, BoardContext, CastlingContext } from './Game';
 import { CapturedPieces } from './CapturedPanel';
 import $ from 'jquery';
 import { isCheck, highlightSquares } from './moveFunctions';
-import findPositionOf from './findBoardIndex';
+import findPositionOf from './utilityFunctions';
 
 export default memo(function PieceMemo({ color, position }) {
   const { turn, setTurn } = useContext(TurnContext);
   const { setPiece } = useContext(CapturedPieces);
   const enPassentSquare = useContext(EnPassentContext);
+  const castling = useContext(CastlingContext);
   const playerColor = useContext(PlayerContext);
   const boardArray = useContext(BoardContext);
-
   const possibleSquares = useRef([]);
   const captureHintClass = classes.captureHint;
   const hintClass = classes.hint;
@@ -21,24 +21,19 @@ export default memo(function PieceMemo({ color, position }) {
   function drag(mouse) {
     const move = $(mouse.target);
 
-    possibleSquares.current = highlightSquares(mouse.target.id, enPassentSquare, boardArray);
+    possibleSquares.current = highlightSquares(mouse.target.id, enPassentSquare, boardArray, castling);
     if (!possibleSquares.current) {
       return;
     }
     possibleSquares.current.forEach((square, index) => {
-      if (square[0] === 'C') {
-        // en passent square
-        let overlay = $(`<div id=${index}></div>`);
-        $('#S' + square[1] + square[2]).append(overlay);
-        overlay.addClass(captureHintClass);
+      let position = square;
+      if (square[0] === 'C' || square[0] === 'E' || square[0] === 'O') {
+        position = square[1] + square[2];
       }
-      else {
-        if (square[0] === 'E') square = square[2] + square[3];
-
-        let overlay = $(`<div id=${index}></div>`);
-        $('#S' + square).append(overlay);
-        overlay.addClass(hintClass);
-      }
+      const overlay = $(`<div id=${index}></div>`);
+      $('#S' + position).append(overlay);
+      if (square[0] === 'C' || square[0] === 'E') overlay.addClass(captureHintClass);
+      else overlay.addClass(hintClass);
     });
 
     const rect = document.elementFromPoint(mouse.pageX, mouse.pageY).getBoundingClientRect();
@@ -107,12 +102,24 @@ export default memo(function PieceMemo({ color, position }) {
         possibleSquares.current.includes('E' + destinationPosition)
       ) {
         let capturedPiece;
+        let captureSquare;
+
         if (possibleSquares.current.includes('C' + destinationPosition)) {
           capturedPiece = $('#' + destinationSquare)[0].firstChild;
         }
         else if (possibleSquares.current.includes('E' + destinationPosition)) {
-          capturedPiece = $('#S' + enPassentSquare)[0].firstChild;
+          captureSquare =
+            playerColor === 'white'
+              ? enPassentSquare[0] + (parseInt(enPassentSquare[1]) - 1)
+              : enPassentSquare[0] + (parseInt(enPassentSquare[1]) + 1);
+          capturedPiece =
+            playerColor === 'white' ? $('#S' + captureSquare)[0].firstChild : $('#S' + captureSquare)[0].firstChild;
+          console.log(
+            enPassentSquare[0] + (parseInt(enPassentSquare[1]) + 1),
+            $('#S' + enPassentSquare[0] + (parseInt(enPassentSquare[1]) - 1))[0]
+          );
         }
+
         if (capturedPiece) {
           setPiece($('#' + capturedPiece.id).attr('class'));
           $('#' + capturedPiece.id).remove();
@@ -121,7 +128,7 @@ export default memo(function PieceMemo({ color, position }) {
         moved = true;
         $('#' + final_id).appendTo('#S' + destinationPosition);
         endLocation.push(original_id, final_id);
-
+        if (captureSquare) endLocation.push(captureSquare);
       }
     }
 

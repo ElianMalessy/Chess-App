@@ -2,14 +2,16 @@ import { useContext, useState, useRef, useEffect } from 'react';
 import { Card, Form } from 'react-bootstrap';
 import { database } from '../../firebase';
 import { onValue, ref, push, set, child } from '@firebase/database';
-import { PlayerContext } from './Game';
+import { PlayerContext, CheckmateContext } from './Game';
 import classes from './Chat.module.css';
 
 export default function Chat({ gameID }) {
   const player = useContext(PlayerContext);
+  const { checkmate } = useContext(CheckmateContext);
+
   const [message, setMessage] = useState([]);
   const [typingMessage, setTypingMessage] = useState('');
-  const sentMessage = useRef(null);
+  const sentMessage = useRef();
 
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID + '/messages');
@@ -32,7 +34,7 @@ export default function Chat({ gameID }) {
   });
 
   function getTime() {
-    let today = new Date();
+    const today = new Date();
     return today.getHours() + ':' + (today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes() + 1);
   }
 
@@ -42,6 +44,7 @@ export default function Chat({ gameID }) {
 
   function handleAdd(e) {
     const dbRef = ref(database, 'Games/' + gameID + '/messages');
+
     e.preventDefault();
     if (typingMessage === '') return;
 
@@ -72,6 +75,7 @@ export default function Chat({ gameID }) {
                 </li>
               );
             })}
+          <strong>{checkmate}</strong>
         </ul>
       </Card.Body>
       <div className={`w-100 ${classes.textInput}`}>
