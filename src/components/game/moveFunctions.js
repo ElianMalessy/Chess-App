@@ -65,8 +65,8 @@ export function isCheck(kingPos, boardArray) {
   const potentialCheckingPieces = [...pieces];
   const checkingPieces = [];
   potentialCheckingPieces.forEach((piece) => {
-    if (moveFunctions[piece[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece, boardArray))
-      checkingPieces.push(piece); // if a piece is attacking a king
+    const returnVal = moveFunctions[piece[0].toLowerCase()]('S' + kingPos[1] + kingPos[2], piece, boardArray);
+    if (returnVal && returnVal !== 'p') checkingPieces.push(piece); // if a piece is attacking a king
   });
   return checkingPieces.length > 0 ? checkingPieces : false;
 }
@@ -76,7 +76,6 @@ function DiagPieceAttackingSquares(destination, origin, board) {
   const origLetter = origin.charCodeAt(1);
   const destNumber = parseInt(destination[2]);
   const origNumber = parseInt(origin[2]);
-  console.log(destination, origin, board);
 
   const arrayOfAttack = [];
 
@@ -224,23 +223,56 @@ function getKingMoves(position, color, boardArray, castling) {
     }
   }
   if (castling !== '') {
-    if (color === 'w' && castling.includes('K')) {
-      for (let i = 1; i < 3; i++) {
-        const temp_board = copyArrayofArray(boardArray);
-        if (temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] !== '1') break;
-        temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] = 'K';
-        temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-        if (!isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
-          possibleMoves.push('O' + String.fromCharCode(positionLetter + i) + '1');
+    if(color === 'w') {
+      if (castling.includes('K')) {
+        for (let i = 1; i < 3; i++) {
+          const temp_board = copyArrayofArray(boardArray);
+          if (temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] !== '1') break;
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] = 'K';
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+          console.log(temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board), i);
+          if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) break;
+          if (i === 2) possibleMoves.push('O' + String.fromCharCode(positionLetter + i) + '1');
+        }
+      }
+      if (castling.includes('Q')) {
+        for (let i = 1; i < 3; i++) {
+          const temp_board = copyArrayofArray(boardArray);
+          if (temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) - i] !== '1') break;
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) - i] = 'K';
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+          console.log(temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board), i);
+          if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) break;
+          if (i === 2) possibleMoves.push('O' + String.fromCharCode(positionLetter - i) + '1');
         }
       }
     }
-    else if (color === 'w' && castling.includes('Q')) {
+    
+    else if(color === 'b') {
+      if (castling.includes('k')) {
+        for (let i = 1; i < 3; i++) {
+          const temp_board = copyArrayofArray(boardArray);
+          if (temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] !== '1') break;
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] = 'K';
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+          console.log(temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board), i);
+          if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) break;
+          if (i === 2) possibleMoves.push('O' + String.fromCharCode(positionLetter + i) + '8');
+        }
+      }
+      if (castling.includes('q')) {
+        for (let i = 1; i < 3; i++) {
+          const temp_board = copyArrayofArray(boardArray);
+          if (temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) - i] !== '1') break;
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) - i] = 'K';
+          temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
+          console.log(temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board), i);
+          if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) break;
+          if (i === 2) possibleMoves.push('O' + String.fromCharCode(positionLetter - i) + '8');
+        }
+      }
     }
-    else if (color === 'b' && castling.includes('k')) {
-    }
-    else if (color === 'b' && castling.includes('k')) {
-    }
+    
   }
   return possibleMoves;
 }
@@ -741,27 +773,31 @@ export const moveFunctions = {
       if (
         getColor(origin[0]) === 'w' &&
         origin[2] === '5' &&
-        enPassentSquare[1] === '5' &&
+        enPassentSquare[1] === '6' &&
         Math.abs(origLetter - enPassentSquare.charCodeAt(0)) === 1
       )
         return true;
       else if (
         getColor(origin[0]) === 'b' &&
         origin[2] === '4' &&
-        enPassentSquare[1] === '4' &&
+        enPassentSquare[1] === '3' &&
         Math.abs(origLetter - enPassentSquare.charCodeAt(0)) === 1
       )
         return true;
       // no other way to reach en passent square than en passent for a pawn
     }
-    else if (Math.abs(destLetter - origLetter) === 1 && board[destLetter - 'a'.charCodeAt(0)][8 - destNumber] !== '1') {
+    else if (
+      Math.abs(destLetter - origLetter) === 1 &&
+      Math.abs(destNumber - origNumber) === 1 &&
+      board[destLetter - 'a'.charCodeAt(0)][8 - destNumber] !== '1'
+    ) {
       return true;
     }
     else if (destLetter === origLetter && board[destLetter - 'a'.charCodeAt(0)][8 - destNumber] === '1') {
-      if (getColor(origin[0]) === 'w' && origin[2] === '2' && destination[2] === '4') return true;
-      else if (getColor(origin[0]) === 'b' && origin[2] === '7' && destination[2] === '5') return true;
-      else if (getColor(origin[0]) === 'w' && destNumber - origNumber === 1) return true;
-      else if (getColor(origin[0]) === 'b' && destNumber - origNumber === -1) return true;
+      if (getColor(origin[0]) === 'w' && origin[2] === '2' && destination[2] === '4') return 'p';
+      else if (getColor(origin[0]) === 'b' && origin[2] === '7' && destination[2] === '5') return 'p';
+      else if (getColor(origin[0]) === 'w' && destNumber - origNumber === 1) return 'p';
+      else if (getColor(origin[0]) === 'b' && destNumber - origNumber === -1) return 'p';
     }
     return false;
   }

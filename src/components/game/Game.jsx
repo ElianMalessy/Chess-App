@@ -214,7 +214,11 @@ export default memo(function Game(props) {
       const newRow = parseInt(oldToNewLocations[1][2]) - 1;
       tempBoard[7 - newRow][newColumn] = piece;
 
-      if (turn[3]) {
+      if (Array.isArray(turn[3])) {
+        tempBoard[7 - (parseInt(turn[3][0][1]) - 1)][turn[3][0].charCodeAt(0) - 'a'.charCodeAt(0)] = '1';
+        tempBoard[7 - (parseInt(turn[3][1][1]) - 1)][turn[3][1].charCodeAt(0) - 'a'.charCodeAt(0)] = turn[3][2];
+      }
+      else if (turn[3]) {
         tempBoard[7 - (parseInt(turn[3][1]) - 1)][turn[3].charCodeAt(0) - 'a'.charCodeAt(0)] = '1';
       }
 
@@ -291,13 +295,21 @@ export default memo(function Game(props) {
       setBoardArray(tempBoard);
       setFEN(temp_FEN);
       localStorage.setItem('FEN', temp_FEN);
-      update(ref(database, 'Games/' + gameID.current), {
-        FEN: temp_FEN,
-        lastMove: turn[3] ? ['E' + oldToNewLocations[0], oldToNewLocations[1]] : oldToNewLocations
-      });
+      if (turn[3]) {
+        update(ref(database, 'Games/' + gameID.current), {
+          FEN: temp_FEN,
+          lastMove: Array.isArray(turn[3])
+            ? ['O' + oldToNewLocations[0], oldToNewLocations[1]]
+            : ['E' + oldToNewLocations[0], oldToNewLocations[1]]
+        });
+      }
+      else {
+        update(ref(database, 'Games/' + gameID.current), {
+          FEN: temp_FEN,
+          lastMove: oldToNewLocations
+        });
+      }
       if (check1) {
-        console.log(check1, playerColor, tempBoard);
-
         update(ref(database, 'Games/' + gameID.current), {
           check: check1
         });
@@ -323,7 +335,6 @@ export default memo(function Game(props) {
       // if snapshot.val() === FEN that means that the user who updated the FEN in the first place is running this
       if (snapshot.exists() && setFENFromOtherUser.current === true && snapshot.val() !== FEN) {
         const temp_FEN = snapshot.val();
-        console.log(temp_FEN);
         fixBoardArray(temp_FEN);
         setFEN(temp_FEN);
         if (temp_FEN[temp_FEN.length - 1] !== '-') {
@@ -373,25 +384,45 @@ export default memo(function Game(props) {
       }
       else {
         let oldToNewLocation = snapshot.val();
+
         if (oldToNewLocation[0][0] === 'E') {
           const captureSquare = oldToNewLocation[1][1] + oldToNewLocation[0][3];
           const capturedPiece = $('#S' + captureSquare)[0].firstChild;
           if (capturedPiece) $('#' + capturedPiece.id).remove();
-          oldToNewLocation[0] = oldToNewLocation[0][1] + oldToNewLocation[0][2] + oldToNewLocation[0][3]
+          oldToNewLocation[0] = oldToNewLocation[0][1] + oldToNewLocation[0][2] + oldToNewLocation[0][3];
+        }
+        else if (oldToNewLocation[0][0] === 'O') {
+          switch (oldToNewLocation[1]) {
+            case 'Kg1':
+              $('#Rh1').appendTo('#Sf1');
+              break;
+            case 'Kc1':
+              $('#Ra1').appendTo('#Sd1');
+              break;
+            case 'kc8':
+              $('#ra8').appendTo('#Sd8');
+              break;
+            case 'kg8':
+              $('#rh8').appendTo('#Sf8');
+              break;
+
+            default:
+              break;
+          }
+          oldToNewLocation[0] = oldToNewLocation[0][1] + oldToNewLocation[0][2] + oldToNewLocation[0][3];
         }
         const oldLocation = $('#' + oldToNewLocation[0]);
+        
         if (oldLocation.length === 0) {
           off(dbRef);
           return;
         }
-
         const capturedPiece = $('#S' + oldToNewLocation[1][1] + oldToNewLocation[1][2])[0].firstChild;
         if (capturedPiece) $('#' + capturedPiece.id).remove();
 
         oldLocation.appendTo($('#S' + oldToNewLocation[1][1] + oldToNewLocation[1][2]));
         oldLocation.attr('id', oldToNewLocation[1]);
 
-      
         playerColor === 'white' ? setTurn('white') : setTurn('black');
       }
       off(dbRef);

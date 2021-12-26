@@ -91,19 +91,18 @@ export default memo(function PieceMemo({ color, position }) {
       if (check) {
         // if the move causes a discovered check to ones own king, then it is not a legal move
         // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
-        console.log('isCheck', check);
-        console.log(final_id, original_id);
         $('#' + final_id).attr('id', original_id);
         moved = false;
       }
       else if (
         possibleSquares.current.includes(destinationPosition) ||
         possibleSquares.current.includes('C' + destinationPosition) ||
-        possibleSquares.current.includes('E' + destinationPosition)
+        possibleSquares.current.includes('E' + destinationPosition) ||
+        possibleSquares.current.includes('O' + destinationPosition)
       ) {
         let capturedPiece;
         let captureSquare;
-
+        let castleSquare;
         if (possibleSquares.current.includes('C' + destinationPosition)) {
           capturedPiece = $('#' + destinationSquare)[0].firstChild;
         }
@@ -114,10 +113,29 @@ export default memo(function PieceMemo({ color, position }) {
               : enPassentSquare[0] + (parseInt(enPassentSquare[1]) + 1);
           capturedPiece =
             playerColor === 'white' ? $('#S' + captureSquare)[0].firstChild : $('#S' + captureSquare)[0].firstChild;
-          console.log(
-            enPassentSquare[0] + (parseInt(enPassentSquare[1]) + 1),
-            $('#S' + enPassentSquare[0] + (parseInt(enPassentSquare[1]) - 1))[0]
-          );
+        }
+        else if (possibleSquares.current.includes('O' + destinationPosition)) {
+          switch (destinationPosition) {
+            case 'g1':
+              $('#Rh1').appendTo('#Sf1');
+              castleSquare = ['h1', 'f1', 'R'];
+              break;
+            case 'c1':
+              $('#Ra1').appendTo('#Sd1');
+              castleSquare = ['a1', 'd1', 'R'];
+              break;
+            case 'c8':
+              $('#ra8').appendTo('#Sd8');
+              castleSquare = ['a8', 'd8', 'r'];
+              break;
+            case 'g8':
+              $('#rh8').appendTo('#Sf8');
+              castleSquare = ['h8', 'f8', 'r'];
+              break;
+
+            default:
+              break;
+          }
         }
 
         if (capturedPiece) {
@@ -129,6 +147,7 @@ export default memo(function PieceMemo({ color, position }) {
         $('#' + final_id).appendTo('#S' + destinationPosition);
         endLocation.push(original_id, final_id);
         if (captureSquare) endLocation.push(captureSquare);
+        else if (castleSquare) endLocation.push(castleSquare);
       }
     }
 
@@ -139,7 +158,7 @@ export default memo(function PieceMemo({ color, position }) {
     moving_piece.data('lastTransform', { dx: 0, dy: 0 });
     if (moved) {
       // when this player has made a move, broadcast that to the other player
-      if (endLocation[0] === undefined || endLocation[1] === undefined) return;
+      if (!endLocation[0] || !endLocation[1]) return;
       turn === 'white' ? setTurn(['black', ...endLocation]) : setTurn(['white', ...endLocation]);
     }
   }
