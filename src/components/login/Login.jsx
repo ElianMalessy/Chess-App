@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useRef, useState, useEffect } from 'react';
 import { Form, Button, Card, Alert, Container } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
@@ -7,24 +7,33 @@ import Background from './Background';
 export default function Login() {
   const emailRef = useRef();
   const passwordRef = useRef();
-  const { login, anonSignup } = useAuth();
+  const { login, anonSignup, currentUser } = useAuth();
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
   const history = useHistory();
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     try {
       setLoginError('');
       setLoading(true);
 
-      login(emailRef.current.value, passwordRef.current.value);
+      await login(emailRef.current.value, passwordRef.current.value);
       setLoading(false);
-      history.push('/');
     } catch (error) {
+      let errorCode = error.code;
+      let errorMessage = error.message;
+      if (errorCode === 'auth/wrong-password') {
+        setLoginError('Wrong password. Please try again');
+      }
+      else if (errorCode === 'auth/user-not-found') {
+        setLoginError('User not found');
+      }
+      else {
+        setLoginError(errorMessage);
+      }
       setLoading(false);
-      setLoginError('Failed to log in');
     }
   }
   async function handleGuest(e) {
@@ -37,6 +46,9 @@ export default function Login() {
       console.error(error);
     }
   }
+  useEffect(() => {
+    if (currentUser) history.push('/');
+  });
   return (
     <Fragment>
       <Background />

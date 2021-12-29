@@ -4,8 +4,7 @@ import classNames from 'classnames';
 import { TurnContext, PlayerContext, EnPassentContext, BoardContext, CastlingContext } from './Game';
 import { CapturedPieces } from './CapturedPanel';
 import $ from 'jquery';
-import { isCheck, highlightSquares } from './moveFunctions';
-import findPositionOf from './utilityFunctions';
+import { highlightSquares } from './moveFunctions';
 
 export default memo(function PieceMemo({ color, position }) {
   const { turn, setTurn } = useContext(TurnContext);
@@ -20,7 +19,6 @@ export default memo(function PieceMemo({ color, position }) {
 
   function drag(mouse) {
     const move = $(mouse.target);
-
     possibleSquares.current = highlightSquares(mouse.target.id, enPassentSquare, boardArray, castling);
     if (!possibleSquares.current) {
       return;
@@ -84,17 +82,7 @@ export default memo(function PieceMemo({ color, position }) {
       const final_id = original_id[0] + destinationPosition;
       $('#' + original_id).attr('id', final_id);
 
-      // weird shit happening with the boardArray having been updated before this block of code is even executed
-      const whiteKingPos = findPositionOf(boardArray, 'K');
-      const blackKingPos = findPositionOf(boardArray, 'k');
-      const check = playerColor === 'white' ? isCheck(whiteKingPos, boardArray) : isCheck(blackKingPos, boardArray);
-      if (check) {
-        // if the move causes a discovered check to ones own king, then it is not a legal move
-        // this works out for a king move as well bc moving into another kings space will count as a check towards the moved king
-        $('#' + final_id).attr('id', original_id);
-        moved = false;
-      }
-      else if (
+      if (
         possibleSquares.current.includes(destinationPosition) ||
         possibleSquares.current.includes('C' + destinationPosition) ||
         possibleSquares.current.includes('E' + destinationPosition) ||
@@ -118,18 +106,26 @@ export default memo(function PieceMemo({ color, position }) {
           switch (destinationPosition) {
             case 'g1':
               $('#Rh1').appendTo('#Sf1');
+              $('#Rh1').attr('id', 'Rf1');
+
               castleSquare = ['h1', 'f1', 'R'];
               break;
             case 'c1':
               $('#Ra1').appendTo('#Sd1');
+              $('#Ra1').attr('id', 'Rd1');
+
               castleSquare = ['a1', 'd1', 'R'];
               break;
             case 'c8':
               $('#ra8').appendTo('#Sd8');
+              $('#ra8').attr('id', 'rd8');
+
               castleSquare = ['a8', 'd8', 'r'];
               break;
             case 'g8':
               $('#rh8').appendTo('#Sf8');
+              $('#rh8').attr('id', 'rf8');
+
               castleSquare = ['h8', 'f8', 'r'];
               break;
 

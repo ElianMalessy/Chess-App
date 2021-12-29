@@ -131,7 +131,6 @@ function VertLatAttackingSquares(destination, origin, board) {
 
       if (board[8 - origNumber][origLetter + i - 'a'.charCodeAt(0)] !== '1') return false;
     }
-    return arrayOfAttack;
   }
   else {
     // vertical movement
@@ -153,9 +152,8 @@ function VertLatAttackingSquares(destination, origin, board) {
         if (board[8 - num][origLetter - 'a'.charCodeAt(0)] !== '1') return false;
       }
     }
-    console.log(arrayOfAttack);
-    return arrayOfAttack;
   }
+  return arrayOfAttack;
 }
 
 export function getColor(pieceType) {
@@ -222,15 +220,14 @@ function getKingMoves(position, color, boardArray, castling) {
       }
     }
   }
-  if (castling !== '') {
-    if(color === 'w') {
+  if (castling !== '' && castling) {
+    if (color === 'w') {
       if (castling.includes('K')) {
         for (let i = 1; i < 3; i++) {
           const temp_board = copyArrayofArray(boardArray);
           if (temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] !== '1') break;
           temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) + i] = 'K';
           temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-          console.log(temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board), i);
           if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) break;
           if (i === 2) possibleMoves.push('O' + String.fromCharCode(positionLetter + i) + '1');
         }
@@ -241,14 +238,12 @@ function getKingMoves(position, color, boardArray, castling) {
           if (temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) - i] !== '1') break;
           temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0) - i] = 'K';
           temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
-          console.log(temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board), i);
           if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) break;
           if (i === 2) possibleMoves.push('O' + String.fromCharCode(positionLetter - i) + '1');
         }
       }
     }
-    
-    else if(color === 'b') {
+    else if (color === 'b') {
       if (castling.includes('k')) {
         for (let i = 1; i < 3; i++) {
           const temp_board = copyArrayofArray(boardArray);
@@ -272,7 +267,6 @@ function getKingMoves(position, color, boardArray, castling) {
         }
       }
     }
-    
   }
   return possibleMoves;
 }
@@ -482,6 +476,7 @@ function getVerticalMoves(position, color, boardArray) {
 }
 
 function getRookMoves(position, color, boardArray) {
+  console.log(position, boardArray);
   const possibleMoves = [];
   possibleMoves.push(...getVerticalMoves(position, color, boardArray));
 
@@ -492,7 +487,6 @@ function getRookMoves(position, color, boardArray) {
 
   for (let i = 0; i < differenceFromLeft; i++) {
     const square = $('#S' + String.fromCharCode(positionCharCode - i - 1) + positionNum);
-
     if (square[0].firstChild) {
       if (color !== getColor(square[0].firstChild.id[0])) {
         possibleMoves.push('C' + square[0].id[1] + square[0].id[2]);
@@ -537,6 +531,7 @@ function getBishopMoves(position, color, boardArray) {
   for (let i = 0; i < differenceFromLeft; i++) {
     // make this into diagonals function so that bishop can use
     // get left horizontal, top left diag, bottom left diag
+    
     const squares = [];
     if (lbDiag && positionNum - i - 1 > 0)
       squares.push([
@@ -555,7 +550,6 @@ function getBishopMoves(position, color, boardArray) {
       const temp_board = copyArrayofArray(boardArray);
       temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft - i - 1] = color === 'w' ? 'B' : 'b';
       temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
-      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
 
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
         if (square[2] === 'lbDiag') lbDiag = false;
@@ -592,8 +586,7 @@ function getBishopMoves(position, color, boardArray) {
       const temp_board = copyArrayofArray(boardArray);
       temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft + i + 1] = color === 'w' ? 'B' : 'b';
       temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
-      console.log(isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
-
+      
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
         if (square[2] === 'rbDiag') rbDiag = false;
         else if (square[2] === 'rtDiag') rtDiag = false;
@@ -650,7 +643,6 @@ function getQueenMoves(position, color, boardArray) {
       const temp_board = copyArrayofArray(boardArray);
       temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft - i - 1] = color === 'w' ? 'Q' : 'q';
       temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
-      console.log(square, temp_board, isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board));
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
         if (square[2] === 'lbDiag') lbDiag = false;
         else if (square[2] === 'lMid') lMid = false;
@@ -671,21 +663,21 @@ function getQueenMoves(position, color, boardArray) {
     const squares = [];
     if (rbDiag && positionNum - i - 1 > 0) {
       squares.push([
-        boardArray[7 - (positionNum - i - 2)][differenceFromRight + i],
+        boardArray[7 - (positionNum - i - 2)][differenceFromLeft + i + 1],
         String.fromCharCode(positionCharCode + i + 1) + (positionNum - i - 1),
         'rbDiag'
       ]);
     }
-    if (rMid)
+    if (rMid) {
       squares.push([
-        boardArray[7 - (positionNum - 1)][differenceFromRight + i],
+        boardArray[7 - (positionNum - 1)][differenceFromLeft + i + 1],
         String.fromCharCode(positionCharCode + i + 1) + positionNum,
         'rMid'
       ]);
+    }
     if (rtDiag && positionNum + i + 1 <= 8) {
-      console.log(7 - (positionNum + i), differenceFromRight + i);
       squares.push([
-        boardArray[7 - (positionNum + i)][differenceFromRight + i],
+        boardArray[7 - (positionNum + i)][differenceFromLeft + i + 1],
         String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1),
         'rtDiag'
       ]);
@@ -694,9 +686,8 @@ function getQueenMoves(position, color, boardArray) {
     for (let j = 0; j < squares.length; j++) {
       const square = squares[j];
       const temp_board = copyArrayofArray(boardArray);
-      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromRight + i] = color === 'w' ? 'Q' : 'q';
+      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft + i] = color === 'w' ? 'Q' : 'q';
       temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
-
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
         if (square[2] === 'rbDiag') rbDiag = false;
         else if (square[2] === 'rMid') rMid = false;

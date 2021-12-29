@@ -57,7 +57,6 @@ export default memo(function Game(props) {
     currentUserID.current = 'temporaryID';
   }
 
-  const setUpTurnChange = useRef(false);
   const fixBoardArray = useCallback((FEN) => {
     // takes FEN as an argument, and fixes the board which we use as a middleman between a move, 'pe2, pe4' to putting that in FEN
     // 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3'
@@ -95,12 +94,10 @@ export default memo(function Game(props) {
     for (let i = FEN.length - 1; i >= 0; i--) {
       if (FEN[i] === 'w') {
         setTurn('white');
-        setUpTurnChange.current = true;
         break;
       }
       else if (FEN[i] === 'b') {
         setTurn('black');
-        setUpTurnChange.current = true;
         break;
       }
     }
@@ -113,7 +110,7 @@ export default memo(function Game(props) {
       await get(dbRef)
         .then((snapshot) => {
           if (snapshot.exists()) {
-            let temp_FEN = snapshot.val().FEN;
+            const temp_FEN = snapshot.val().FEN;
             setFEN(temp_FEN);
             fixTurnFromFEN(temp_FEN);
             fixBoardArray(temp_FEN);
@@ -129,15 +126,10 @@ export default memo(function Game(props) {
     [fixBoardArray, fixTurnFromFEN]
   );
   const fixStuffOnLoad = useCallback(
-    (reload) => {
-      let localStorage_FEN = localStorage.getItem('FEN');
-      if (!localStorage_FEN) getFEN(gameID.current);
-      else {
-        fixBoardArray(localStorage_FEN);
-        if (reload) fixTurnFromFEN(localStorage_FEN);
-      }
+    () => {
+      getFEN(gameID.current);
     },
-    [fixBoardArray, getFEN, fixTurnFromFEN]
+    [getFEN]
   );
 
   // userHandler gets triggered on every load of the page
@@ -158,7 +150,7 @@ export default memo(function Game(props) {
 
                 update(dbRef, {
                   player2: playerID
-                }).then(() => fixStuffOnLoad(false));
+                }).then(() => fixStuffOnLoad());
               }
               else {
                 // old users
@@ -168,7 +160,7 @@ export default memo(function Game(props) {
                 else if (playerID === p2) {
                   setplayerColor('black');
                 }
-                fixStuffOnLoad(true);
+                fixStuffOnLoad();
               }
             }
             else {
@@ -180,7 +172,7 @@ export default memo(function Game(props) {
                 player1: playerID,
                 FEN: FEN
               });
-              fixStuffOnLoad(false);
+              fixStuffOnLoad();
             }
           })
           .catch((error) => {
@@ -195,6 +187,7 @@ export default memo(function Game(props) {
   const [enPassentSquare, setEnpassentSquare] = useState(null);
   const setLastMoveFromOtherUser = useRef(true);
   const setFENFromOtherUser = useRef(true);
+
   useEffect(
     () => {
       // if turn is 'white' or 'black' then this is the wrong user/socket as it has no newLocation
@@ -395,15 +388,21 @@ export default memo(function Game(props) {
           switch (oldToNewLocation[1]) {
             case 'Kg1':
               $('#Rh1').appendTo('#Sf1');
+              $('#Rh1').attr('id', 'Rf1');
+
               break;
             case 'Kc1':
               $('#Ra1').appendTo('#Sd1');
+              $('#Ra1').attr('id', 'Rd1');
               break;
             case 'kc8':
               $('#ra8').appendTo('#Sd8');
+              $('#ra8').attr('id', 'rd8');
+
               break;
             case 'kg8':
               $('#rh8').appendTo('#Sf8');
+              $('#rh8').attr('id', 'rf8');
               break;
 
             default:
@@ -412,7 +411,7 @@ export default memo(function Game(props) {
           oldToNewLocation[0] = oldToNewLocation[0][1] + oldToNewLocation[0][2] + oldToNewLocation[0][3];
         }
         const oldLocation = $('#' + oldToNewLocation[0]);
-        
+
         if (oldLocation.length === 0) {
           off(dbRef);
           return;

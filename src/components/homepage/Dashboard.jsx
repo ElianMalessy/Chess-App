@@ -17,6 +17,10 @@ export default memo(function Dashboard() {
   const gameID = useRef(Math.floor(Math.random() * 100 + 1));
   const [randomURL, setRandomURL] = useState('localhost:3000/Game/' + gameID.current);
 
+  useEffect(() => {
+    if (!currentUser) history.push('/Login');
+  });
+
   async function handleLogout() {
     setError('');
     try {

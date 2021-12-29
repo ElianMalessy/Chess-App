@@ -19,16 +19,27 @@ export default function Signup() {
     if (passwordRef.current.value !== passwordConfirmRef.current.value) {
       return setError('Passwords do not match');
     }
-
     try {
-      setError('');
       setLoading(true);
       await signup(emailRef.current.value, passwordRef.current.value);
-      setLoading(false);
       history.push('/');
-    } catch (error) {
+
       setLoading(false);
-      setError('Failed to create an account');
+    } catch (error) {
+      let errorCode = error.code;
+      let errorMessage = error.message;
+      if (errorCode === 'email-already-in-use') {
+        setError('You already have an account with that email.');
+      }
+      else if (errorCode === 'auth/invalid-email') {
+        setError('Please provide a valid email');
+      }
+      else if (errorCode === 'auth/weak-password') {
+        setError('The password is too weak.');
+      }
+      else {
+        setError(errorMessage);
+      }
     }
   }
   async function handleGuest(e) {

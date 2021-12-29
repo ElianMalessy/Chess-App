@@ -22,14 +22,13 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState();
   const [loading, setLoading] = useState(true);
 
-  function signup(email, password) {
+  async function signup(email, password) {
     return createUserWithEmailAndPassword(auth, email, password);
   }
 
-  function login(email, password) {
+  async function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
   }
-
   function logout() {
     return signOut(auth);
   }
@@ -49,7 +48,7 @@ export function AuthProvider({ children }) {
   function updateUsername(username) {
     return updateProfile(currentUser, { displayName: username });
   }
-  
+
   function updateProfilePic(profilePic) {
     return updateProfile(currentUser, { photoURL: profilePic });
   }
