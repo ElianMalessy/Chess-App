@@ -159,7 +159,7 @@ export default memo(function PieceMemo({ color, position }) {
     }
   }
 
-  let pieceClass = color + '-' + position[0].toLowerCase();
+  const pieceClass = color + '-' + position[0].toLowerCase();
   const Classes = classNames(classes[color], classes[pieceClass]);
   if (playerColor) {
     return (

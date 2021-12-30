@@ -125,6 +125,7 @@ function Board({ FEN, check }) {
           !findPossibleMoves(check, kingPos, findAllPieces(boardArray, turn[0]), boardArray, turn[0], enPassentSquare)
         ) {
           setCheckmate((turn[0] === 'w' ? 'white' : 'black') + ' has won');
+          
         }
       }
     },

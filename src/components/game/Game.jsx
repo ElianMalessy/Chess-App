@@ -6,7 +6,7 @@ import CapturedPanel from './CapturedPanel';
 import Chat from './Chat';
 import RightPanel from './RightPanel';
 import { database } from '../../firebase';
-import { ref, update, set, get, onValue, off } from '@firebase/database';
+import { ref, update, set, get, onValue, off, remove } from '@firebase/database';
 import { useAuth } from '../../contexts/AuthContext';
 import { Container, Row, Col } from 'react-bootstrap';
 import { getColor, isCheck } from './moveFunctions';
@@ -47,15 +47,23 @@ export default memo(function Game(props) {
   const [playerColor, setplayerColor] = useState(null);
   const [turn, setTurn] = useState('white');
 
-  let path = props.location.pathname;
+  const path = props.location.pathname;
   const gameID = useRef(path.substring(path.lastIndexOf('/') + 1));
 
   const { currentUser } = useAuth();
   const currentUserID = useRef();
   if (currentUser) currentUserID.current = currentUser.uid;
-  else {
-    currentUserID.current = 'temporaryID';
-  }
+  else currentUserID.current = 'temporaryID';
+
+  useEffect(
+    () => {
+      if (checkmate)
+        update(ref(database, 'Games/' + gameID.current), {
+          checkmate: checkmate
+        });
+    },
+    [checkmate]
+  );
 
   const fixBoardArray = useCallback((FEN) => {
     // takes FEN as an argument, and fixes the board which we use as a middleman between a move, 'pe2, pe4' to putting that in FEN
@@ -339,6 +347,16 @@ export default memo(function Game(props) {
       else if (snapshot.exists() && setFENFromOtherUser.current === false) {
         setFENFromOtherUser.current = true;
         off(dbRef);
+      }
+    });
+  });
+
+  useEffect(() => {
+    const dbRef = ref(database, 'Games/' + gameID.current + '/checkmate');
+    onValue(dbRef, (snapshot) => {
+      if (snapshot.exists() && !checkmate) {
+        setCheckmate(snapshot.val());
+        remove(ref(database, 'Games/' + gameID.current));
       }
     });
   });
