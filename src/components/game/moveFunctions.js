@@ -1,4 +1,3 @@
-/* eslint-disable no-loop-func */
 import $ from 'jquery';
 import findPositionOf, { findAllPieces, copyArrayofArray } from './utilityFunctions';
 
@@ -28,24 +27,23 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
   });
 
   const possibleMoves = [];
-  piecesArray.push(kingPos);
   piecesArray.forEach((piece) => {
     // if a piece going to this square triggers a discovered check, then dont put this into possible moves
     // since you have the possible squares in which the pieces must go into to protect the king, the next step is to check every piece and see if
     // they can move to protect the king, (not including the king)
     tempPossibleSquares.forEach((square) => {
-      if (moveFunctions[piece[0].toLowerCase()]('S' + square, piece, boardArray, enPassentSquare)) {
+      const returnVal = moveFunctions[piece[0].toLowerCase()]('S' + square, piece, boardArray, enPassentSquare);
+      if (returnVal && returnVal !== 'p') {
         const temp_board = copyArrayofArray(boardArray);
         temp_board[7 - (parseInt(square[1]) - 1)][square.charCodeAt(0) - 'a'.charCodeAt(0)] = piece[0];
         temp_board[7 - (parseInt(piece[2]) - 1)][piece.charCodeAt(1) - 'a'.charCodeAt(0)] = '1';
-        let temp_kingPos = kingPos[0] + square[0] + square[1];
-        if (!isCheck(temp_kingPos, temp_board)) {
+        if (!isCheck(kingPos, temp_board)) {
           possibleMoves.push([piece, square]);
         }
       }
     });
   });
-  console.log(tempPossibleSquares, possibleMoves, getKingMoves(kingPos[1] + kingPos[2], color, boardArray));
+  
   if (getKingMoves(kingPos[1] + kingPos[2], color, boardArray).length === 0 && possibleMoves.length === 0) {
     console.log('CHECKMATE'); // IT WORKS!!!
     return false;
@@ -55,7 +53,7 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
 
 export function isCheck(kingPos, boardArray) {
   if (!kingPos) return false;
-  const pieces = findAllPieces(boardArray, getColor(kingPos[0])); //select all of the pieces except for the kings as they cant check each other
+  const pieces = findAllPieces(boardArray, getColor(kingPos[0]) === 'b' ? 'w' : 'b'); //select all of the pieces except for the kings as they cant check each other
   // checks if the move is legal by putting in the destination and looking for checks before actually appending to new square
   const potentialCheckingPieces = [...pieces];
   const checkingPieces = [];
@@ -200,7 +198,6 @@ function getKingMoves(position, color, boardArray, castling) {
     if (newNumber <= 8 && newNumber > 0 && newLetter >= 'a'.charCodeAt(0) && newLetter <= 'h'.charCodeAt(0)) {
       const square = $('#S' + String.fromCharCode(newLetter) + newNumber);
       const temp_board = copyArrayofArray(boardArray);
-      console.log(square)
       temp_board[7 - (newNumber - 1)][newLetter - 'a'.charCodeAt(0)] = color === 'w' ? 'K' : 'k';
       temp_board[7 - (positionNum - 1)][positionLetter - 'a'.charCodeAt(0)] = '1';
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) continue;
@@ -294,7 +291,6 @@ function getKnightMoves(position, color, boardArray) {
 function getWhitePawnMoves(position, color, enPassentSquare, boardArray) {
   const possibleMoves = [];
   const positionLetter = position.charCodeAt(0);
-
   if (!$('#S' + position[0] + (parseInt(position[1]) + 1))[0].firstChild) {
     const temp_board = copyArrayofArray(boardArray);
     temp_board[7 - parseInt(position[1])][positionLetter - 'a'.charCodeAt(0)] = 'P';
@@ -665,6 +661,11 @@ function getQueenMoves(position, color, boardArray) {
       ]);
     }
     if (rtDiag && positionNum + i + 1 <= 8) {
+      console.log(
+        boardArray,
+        boardArray[7 - (positionNum + i)][differenceFromLeft + i + 1],
+        String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1)
+      );
       squares.push([
         boardArray[7 - (positionNum + i)][differenceFromLeft + i + 1],
         String.fromCharCode(positionCharCode + i + 1) + (positionNum + i + 1),
@@ -675,7 +676,8 @@ function getQueenMoves(position, color, boardArray) {
     for (let j = 0; j < squares.length; j++) {
       const square = squares[j];
       const temp_board = copyArrayofArray(boardArray);
-      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft + i] = color === 'w' ? 'Q' : 'q';
+      
+      temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft + i + 1] = color === 'w' ? 'Q' : 'q';
       temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
         if (square[2] === 'rbDiag') rbDiag = false;
@@ -701,15 +703,15 @@ export const moveFunctions = {
     const destLetter = destination[1].charCodeAt(0);
     const origLetter = origin[1].charCodeAt(0);
     if (
-      (Math.abs(destLetter - origLetter) === 2 && Math.abs(destination[2] - origin[2]) === 1) ||
-      (Math.abs(destLetter - origLetter) === 1 && Math.abs(destination[2] - origin[2]) === 2)
+      (Math.abs(destLetter - origLetter) === 2 && Math.abs(parseInt(destination[2]) - parseInt(origin[2])) === 1) ||
+      (Math.abs(destLetter - origLetter) === 1 && Math.abs(parseInt(destination[2]) - parseInt(origin[2])) === 2)
     )
       return true;
   },
   b: function Bishop(destination, origin, board) {
     const destLetter = destination[1].charCodeAt(0);
     const origLetter = origin[1].charCodeAt(0);
-    if (Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2])) {
+    if (Math.abs(destLetter - origLetter) === Math.abs(parseInt(destination[2]) - parseInt(origin[2]))) {
       if (DiagPieceAttackingSquares(destination, origin, board)) return true;
     }
   },
@@ -730,7 +732,7 @@ export const moveFunctions = {
       return true;
     }
     else if (
-      Math.abs(destLetter - origLetter) === Math.abs(destination[2] - origin[2]) &&
+      Math.abs(destLetter - origLetter) === Math.abs(parseInt(destination[2]) - parseInt(origin[2])) &&
       DiagPieceAttackingSquares(destination, origin, board)
     )
       return true;

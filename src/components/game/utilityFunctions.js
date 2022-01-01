@@ -14,12 +14,12 @@ export function findAllPieces(arrayofArray, color) {
   const allPieces = [];
   for (let i = 0; i < 8; i++) {
     for (let j = 0; j < 8; j++) {
-      let piece = arrayofArray[i][j].toLowerCase();
-      if (piece === 'k' || piece === '1') continue;
+      let piece = arrayofArray[i][j];
+      if (piece.toLowerCase() === 'k' || piece === '1') continue;
 
-      if (piece === arrayofArray[i][j] && color === 'w')
+      if (piece === arrayofArray[i][j].toLowerCase() && color === 'b')
         allPieces.push(arrayofArray[i][j] + String.fromCharCode('a'.charCodeAt(0) + j) + (8 - i));
-      else if (arrayofArray[i][j].toUpperCase() === arrayofArray[i][j] && color === 'b')
+      else if (piece === arrayofArray[i][j].toUpperCase() && color === 'w')
         allPieces.push(arrayofArray[i][j] + String.fromCharCode('a'.charCodeAt(0) + j) + (8 - i));
     }
   }

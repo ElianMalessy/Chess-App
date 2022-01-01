@@ -123,7 +123,7 @@ function Board({ FEN, check }) {
           !findPossibleMoves(
             check,
             kingPos,
-            findAllPieces(boardArray, playerColor),
+            findAllPieces(boardArray, playerColor[0]),
             boardArray,
             playerColor[0],
             enPassentSquare
