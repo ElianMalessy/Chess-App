@@ -9,6 +9,7 @@ export default function ProfilePic({ tempProfilePic, children, setTempProfilePic
     height: 165,
     width: 165
   });
+
   useEffect(
     () => {
       // file upload as new profile pic preview
@@ -35,6 +36,7 @@ export default function ProfilePic({ tempProfilePic, children, setTempProfilePic
       scaledImg.current = editor.getImageScaledToCanvas().toDataURL();
     }
   };
+  
   return (
     <div style={{ position: 'absolute' }}>
       <AvatarEditor

@@ -1,10 +1,10 @@
 import { Form, Card, Button } from 'react-bootstrap';
 import classes from './Modal.module.css';
 import { motion } from 'framer-motion';
-import Backdrop from './Backdrop';
+import Backdrop from './Backdrop.jsx';
 import ModalContainer from './ModalContainer';
 import { useRef, useState, useEffect } from 'react';
-import ProfilePic from './ProfilePic/ProfilePic';
+import ProfilePic from './ProfilePic/ProfilePic.jsx';
 import dataURLtoFile from '../convertToFile';
 
 const dropIn = {
@@ -37,6 +37,7 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
     // eslint-disable-next-line
     [profilePic]
   );
+
   const [possibleSwitch, setPossibleSwitch] = useState(true);
 
   function submitUrl(e) {
@@ -62,6 +63,18 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
     // Read in the image file as a data URL.
     reader.readAsDataURL(files);
   }
+  async function createFile(url) {
+    console.log(url);
+    let response = await fetch(url);
+    let data = await response.blob();
+    let metadata = {
+      type: 'image/jpeg'
+    };
+    let f = new File([data], 'test.jpg', metadata);
+    changeProfilePic(f);
+    // ... do something with the file or return it
+  }
+
   return (
     <ModalContainer>
       {isOpen && (
@@ -86,8 +99,13 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
                     <ModalButton
                       onClick={() => {
                         setProfilePic(tempProfilePic);
-                        const file = dataURLtoFile(tempProfilePic, 'user.jpg');
-                        changeProfilePic(file);
+
+                        try {
+                          const file = dataURLtoFile(tempProfilePic, 'user.jpg');
+                          changeProfilePic(file);
+                        } catch (error) {
+                          createFile(tempProfilePic);
+                        }
                       }}
                       label='Save'
                       btnClass='modal-button2'
@@ -117,14 +135,21 @@ export default function Modal({ setOpen, changeProfilePic, isOpen, profilePic, s
                       style={{ display: 'none' }}
                     />
                     <label htmlFor='select-image' style={{ width: '10.3rem' }}>
-                      <Button onClick={() => fileInputRef.current.click()} className={classes['modal-button3']} style={{ marginTop: '-1rem', fontSize: '0.8rem', fontWeight: '800' }}>
+                      <Button
+                        onClick={() => fileInputRef.current.click()}
+                        className={classes['modal-button3']}
+                        style={{ marginTop: '-1rem', fontSize: '0.8rem', fontWeight: '800' }}
+                      >
                         Upload Image
                       </Button>
                     </label>
                   </Form.Group>
                 </Form>
 
-                <Card.Text className='d-flex justify-content-center w-100' style={{ position: 'absolute', bottom: '0.8rem' }}>
+                <Card.Text
+                  className='d-flex justify-content-center w-100'
+                  style={{ position: 'absolute', bottom: '0.8rem' }}
+                >
                   <ModalButton onClick={() => setOpen(false)} label='Close' btnClass='modal-button' />
                 </Card.Text>
               </Card.Body>

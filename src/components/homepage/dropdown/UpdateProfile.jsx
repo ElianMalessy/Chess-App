@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Form, Button, Card, Alert } from 'react-bootstrap';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Link, useHistory } from 'react-router-dom';
@@ -7,7 +7,7 @@ export default function UpdateProfile() {
   const userNameRef = useRef();
   const passwordRef = useRef();
   const passwordConfirmRef = useRef();
-  const { currentUser, updatePassword, updateUsername } = useAuth();
+  const { currentUser, updatePassword, updateUsername, deleteCurrentUser } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const history = useHistory();
@@ -43,9 +43,9 @@ export default function UpdateProfile() {
   }
 
   return (
-    <Fragment>
-      <Card>
-        <Card.Body>
+    <div className='w-100 h-100' style={{ backgroundColor: '#1f1e1e', position: 'absolute' }}>
+      <Card style={{ backgroundColor: '#1f1e1e' }}>
+        <Card.Body style={{ color: 'white' }}>
           <h2 className='text-center mb-4'>Update Profile</h2>
           {error && <Alert variant='danger'>{error}</Alert>}
           <Form onSubmit={handleSubmit}>
@@ -61,7 +61,7 @@ export default function UpdateProfile() {
                   ) : currentUser.email ? (
                     currentUser.email
                   ) : (
-                    'anonymous'
+                    '(anonymous)'
                   )
                 }
                 maxLength='20'
@@ -75,7 +75,7 @@ export default function UpdateProfile() {
               <Form.Label>Password Confirmation</Form.Label>
               <Form.Control type='password' ref={passwordConfirmRef} placeholder='Leave blank to keep the same' />
             </Form.Group>
-            <Button disabled={loading} className='w-100' type='submit'>
+            <Button disabled={loading} className='w-100 mt-3' type='submit'>
               Update
             </Button>
           </Form>
@@ -84,6 +84,15 @@ export default function UpdateProfile() {
       <div className='w-100 text-center mt-2'>
         <Link to='/'>Cancel</Link>
       </div>
-    </Fragment>
+      <Button
+        disabled={loading}
+        onClick={deleteCurrentUser}
+        className='mt-3'
+        type='submit'
+        style={{ marginLeft: '1rem' }}
+      >
+        Delete Account
+      </Button>
+    </div>
   );
 }

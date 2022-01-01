@@ -1,13 +1,13 @@
 export const toDataURL = (url) =>
-fetch(url).then((response) => response.blob()).then(
-  (blob) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    })
-);
+  fetch(url).then((response) => response.blob()).then(
+    (blob) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      })
+  );
 export default function dataURLtoFile(dataurl, filename) {
   var arr = dataurl.split(','),
     mime = arr[0].match(/:(.*?);/)[1],

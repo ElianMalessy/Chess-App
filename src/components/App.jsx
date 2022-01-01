@@ -5,12 +5,11 @@ import Dashboard from './homepage/Dashboard.jsx';
 import Game from './game/Game.jsx';
 import Login from './login/Login.jsx';
 import PrivateRoute from './PrivateRoute.jsx';
-import ForgotPassword from './homepage/dropdown/ForgotPassword.jsx';
+import ForgotPassword from './login/ForgotPassword.jsx';
 import UpdateProfile from './homepage/dropdown/UpdateProfile.jsx';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
-  // /Game should be a private route as well in production
   return (
     <Router>
       <AuthProvider>

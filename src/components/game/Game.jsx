@@ -174,8 +174,6 @@ export default memo(function Game(props) {
             else {
               // new user, color = white
               setplayerColor('white');
-              localStorage.setItem(currentUserID.current, 'white');
-              localStorage.setItem('FEN', FEN);
               set(dbRef, {
                 player1: playerID,
                 FEN: FEN
@@ -295,7 +293,6 @@ export default memo(function Game(props) {
       const check1 = playerColor === 'white' ? isCheck(blackKingPos, tempBoard) : isCheck(whiteKingPos, tempBoard);
       setBoardArray(tempBoard);
       setFEN(temp_FEN);
-      localStorage.setItem('FEN', temp_FEN);
       if (turn[3]) {
         update(ref(database, 'Games/' + gameID.current), {
           FEN: temp_FEN,
@@ -356,11 +353,16 @@ export default memo(function Game(props) {
     onValue(dbRef, (snapshot) => {
       if (snapshot.exists() && !checkmate) {
         setCheckmate(snapshot.val());
-        remove(ref(database, 'Games/' + gameID.current));
       }
     });
   });
 
+  useEffect(
+    () => {
+      if (checkmate && turn === playerColor) remove(ref(database, 'Games/' + gameID.current));
+    },
+    [checkmate, playerColor, turn]
+  );
   const [check, setCheck] = useState(null);
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/check');
@@ -378,6 +380,16 @@ export default memo(function Game(props) {
     });
   });
 
+  useEffect(() => {
+    const kingPos = $('#' + findPositionOf(boardArray, playerColor === 'white' ? 'K' : 'k'));
+
+    if (check && !$('#check').length) {
+      kingPos.addClass(classes[getColor(kingPos[0].id[0]) + '-check']);
+    }
+    else if ($('#check').length) {
+      $('#check').remove();
+    }
+  });
   useEffect(() => {
     const dbRef = ref(database, 'Games/' + gameID.current + '/lastMove');
     onValue(dbRef, (snapshot) => {

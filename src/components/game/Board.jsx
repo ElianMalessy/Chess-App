@@ -1,14 +1,13 @@
 import { useContext, useEffect, useState, useRef, memo } from 'react';
 import classes from './Board.module.css';
 import PieceMemo from './Piece';
-import { PlayerContext, TurnContext, BoardContext, EnPassentContext, CheckmateContext } from './Game';
+import { PlayerContext, BoardContext, EnPassentContext, CheckmateContext } from './Game';
 import findPossibleMoves from './moveFunctions';
 import findPositionOf, { findAllPieces } from './utilityFunctions';
 
 function Board({ FEN, check }) {
   const boardArray = useContext(BoardContext);
   const playerColor = useContext(PlayerContext);
-  const { turn } = useContext(TurnContext);
   const enPassentSquare = useContext(EnPassentContext);
   const { checkmate, setCheckmate } = useContext(CheckmateContext);
 
@@ -19,11 +18,12 @@ function Board({ FEN, check }) {
   useEffect(
     () => {
       if (firstRender.current && FEN && playerColor) firstRender.current = false;
-      else if (!firstRender.current && FEN && playerColor) return;
+      else if ((!firstRender.current && FEN && playerColor) || !FEN) return;
 
       console.log('board-render', FEN);
       const emptyBoard = [];
       boardFiller.current = emptyBoard;
+
       let index = FEN.length;
       while (true) {
         if (FEN[index] === 'w' || FEN[index] === 'b') {
@@ -112,20 +112,24 @@ function Board({ FEN, check }) {
   useEffect(
     () => {
       if (check && !checkmate) {
-        console.log(check);
         let kingPos;
-
-        if (turn[0] === 'w') {
-          kingPos = findPositionOf(boardArray, 'k');
-        }
-        else if (turn[0] === 'b') {
+        if (playerColor === 'white') {
           kingPos = findPositionOf(boardArray, 'K');
         }
+        else if (playerColor === 'black') {
+          kingPos = findPositionOf(boardArray, 'k');
+        }
         if (
-          !findPossibleMoves(check, kingPos, findAllPieces(boardArray, turn[0]), boardArray, turn[0], enPassentSquare)
+          !findPossibleMoves(
+            check,
+            kingPos,
+            findAllPieces(boardArray, playerColor),
+            boardArray,
+            playerColor[0],
+            enPassentSquare
+          )
         ) {
-          setCheckmate((turn[0] === 'w' ? 'white' : 'black') + ' has won');
-          
+          setCheckmate((playerColor === 'white' ? 'black' : 'white') + ' has won');
         }
       }
     },

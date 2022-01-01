@@ -15,7 +15,7 @@ export default memo(function Dashboard() {
   const { currentUser, logout, updateProfilePic } = useAuth();
   const history = useHistory();
   const gameID = useRef(Math.floor(Math.random() * 100 + 1));
-  const [randomURL, setRandomURL] = useState('localhost:3000/Game/' + gameID.current);
+  const [randomURL, setRandomURL] = useState(window.location.href + 'Game/' + gameID.current);
 
   useEffect(() => {
     if (!currentUser) history.push('/Login');
@@ -32,7 +32,6 @@ export default memo(function Dashboard() {
     }
   }
 
-  // 'https://images.chesscomfiles.com/uploads/v1/news/133624.b2e6ae86.668x375o.9d61b2d492ec@2x.jpeg' <-- magnus carlsen pfp
   const [profilePic, setProfilePic] = useState(
     'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Font_Awesome_5_solid_user-circle.svg/991px-Font_Awesome_5_solid_user-circle.svg.png'
   );
@@ -41,6 +40,7 @@ export default memo(function Dashboard() {
 
   const changeProfilePic = useCallback(
     (file) => {
+      console.log(file);
       const storage = getStorage();
       const uploadTask = uploadBytesResumable(ref(storage, `profile-pictures/${currentUser.uid}.jpg`), file);
       uploadTask.on(
@@ -79,7 +79,9 @@ export default memo(function Dashboard() {
       const storage = getStorage();
 
       if (currentUser) {
-        if (currentUser.photoURL) setProfilePic(currentUser.photoURL);
+        if (currentUser.photoURL) {
+          setProfilePic(currentUser.photoURL);
+        }
         else {
           getDownloadURL(ref(storage, `profile-pictures/${currentUser.uid}.jpg`))
             .then((url) => {
@@ -171,11 +173,6 @@ export default memo(function Dashboard() {
             </div>
             <ul>
               <li>
-                <Link to='/Game/1' className={`h-50 ${classes.headerLink}`}>
-                  Testing
-                </Link>
-              </li>
-              <li>
                 <Link to={`/Game/${gameID.current}`} className={`h-50 ${classes.headerLink}`}>
                   Play
                 </Link>
@@ -215,7 +212,7 @@ export default memo(function Dashboard() {
                   ) : currentUser && currentUser.email ? (
                     currentUser.email
                   ) : (
-                    'anonymous'
+                    '(anonymous)'
                   )}
                   <i className='fa fa-chevron-down' style={{ marginLeft: '0.5rem' }} aria-hidden='true' />
                 </pre>
