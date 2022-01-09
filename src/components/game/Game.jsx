@@ -143,7 +143,8 @@ export default memo(function Game(props) {
   // userHandler gets triggered on every load of the page
   useEffect(
     () => {
-      userHandler(gameID.current, currentUserID.current, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
+      if (!checkmate)
+        userHandler(gameID.current, currentUserID.current, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -');
       async function userHandler(gameID, playerID, FEN) {
         const dbRef = ref(database, 'Games/' + gameID);
         console.log('newUserHandler');
@@ -186,7 +187,7 @@ export default memo(function Game(props) {
           });
       }
     },
-    [fixStuffOnLoad]
+    [fixStuffOnLoad, checkmate]
   );
 
   const [castling, setCastling] = useState('KQkq'); // 'K' is white kingside castling 'q' is black queenside castling

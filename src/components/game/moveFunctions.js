@@ -33,7 +33,16 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
     // they can move to protect the king, (not including the king)
     tempPossibleSquares.forEach((square) => {
       const returnVal = moveFunctions[piece[0].toLowerCase()]('S' + square, piece, boardArray, enPassentSquare);
-      if (returnVal && returnVal !== 'p') {
+      if (
+        returnVal &&
+        (returnVal !== 'p' ||
+          (returnVal === 'p' &&
+            !checkingPieces.forEach((piece, index) => {
+              console.log(piece, square);
+              if (piece[1] + piece[2] === square) return true;
+              else if (index === checkingPieces.length - 1) return false;
+            })))
+      ) {
         const temp_board = copyArrayofArray(boardArray);
         temp_board[7 - (parseInt(square[1]) - 1)][square.charCodeAt(0) - 'a'.charCodeAt(0)] = piece[0];
         temp_board[7 - (parseInt(piece[2]) - 1)][piece.charCodeAt(1) - 'a'.charCodeAt(0)] = '1';
@@ -43,7 +52,7 @@ export default function getPossibleMoves(checkingPieces, kingPos, piecesArray, b
       }
     });
   });
-  
+
   if (getKingMoves(kingPos[1] + kingPos[2], color, boardArray).length === 0 && possibleMoves.length === 0) {
     console.log('CHECKMATE'); // IT WORKS!!!
     return false;
@@ -676,7 +685,7 @@ function getQueenMoves(position, color, boardArray) {
     for (let j = 0; j < squares.length; j++) {
       const square = squares[j];
       const temp_board = copyArrayofArray(boardArray);
-      
+
       temp_board[7 - (parseInt(square[1][1]) - 1)][differenceFromLeft + i + 1] = color === 'w' ? 'Q' : 'q';
       temp_board[7 - (positionNum - 1)][differenceFromLeft] = '1';
       if (isCheck(findPositionOf(temp_board, color === 'w' ? 'K' : 'k'), temp_board)) {
